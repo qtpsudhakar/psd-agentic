@@ -1,0 +1,40 @@
+{
+  "default": {
+    "paths": ["features/**/*.feature"],
+    "require": [
+      "steps/**/*.steps.ts",
+      "support/world.ts",
+      "support/hooks.ts"
+    ],
+    "requireModule": ["ts-node/register"],
+    "format": [
+      "html:reports/cucumber-report.html",
+      "json:reports/cucumber-report.json",
+      "rerun:reports/rerun.txt"
+    ],
+    "formatOptions": {
+      "colorsEnabled": true,
+      "snippetInterface": "synchronous",
+      "snippetSyntax": "typescript"
+    },
+    "worldParameters": {
+      "baseUrl": "http://localhost:3000",
+      "env": "local",
+      "browser": "chromium",
+      "headless": true
+    },
+    "tags": "@smoke or (@login and not @wip)",
+    "name": ".*",
+    "order": "defined",
+    "parallel": 1,
+    "retry": 0,
+    "publishQuiet": true,
+    "publish": false,
+    "failFast": false,
+    "dryRun": false,
+    "strict": false,
+    "timeout": 120000,
+    "defaultTimeout": 120000,
+    "failOnUndefined": false
+  }
+}

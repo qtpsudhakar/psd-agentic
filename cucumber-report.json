@@ -1,0 +1,138 @@
+[
+  {
+    "description": "  As a user of the PIM system\n  I want to authenticate with valid credentials\n  So that I can access the system securely",
+    "elements": [
+      {
+        "description": "",
+        "id": "end-to-end-emp-management;end-to-end-flow",
+        "keyword": "Scenario",
+        "line": 9,
+        "name": "End to End flow",
+        "steps": [
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 7,
+            "name": "I navigate to the login page",
+            "match": {
+              "location": "steps\\pages\\login.steps.ts:5"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 10,
+            "name": "I login with valid credentials \"testadmin\" and \"Vibetestq@123#\"",
+            "match": {
+              "location": "steps\\pages\\login.steps.ts:11"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 11,
+            "name": "I should be redirected to the dashboard page",
+            "match": {
+              "location": "steps\\pages\\dashboard.steps.ts:5"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 12,
+            "name": "I navigate to the employee list page",
+            "result": {
+              "status": "undefined",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 13,
+            "name": "I should see the PIM module is accessible",
+            "match": {
+              "location": "steps\\pages\\pim.steps.ts:13"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 14,
+            "name": "I click on add button",
+            "match": {
+              "location": "steps\\pages\\pim.steps.ts:23"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 15,
+            "name": "I should see the add employee form",
+            "match": {
+              "location": "steps\\pages\\pim.steps.ts:28"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 16,
+            "name": "I add a new employee with unique details",
+            "match": {
+              "location": "steps\\pages\\pim.steps.ts:33"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 17,
+            "name": "the employee should be created successfully",
+            "match": {
+              "location": "steps\\pages\\pim.steps.ts:43"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "end-to-end-emp-management",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "End to end Emp Management",
+    "tags": [],
+    "uri": "features\\empmgmt.feature"
+  }
+]

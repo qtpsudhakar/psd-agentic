@@ -1,0 +1,25 @@
+{
+  "name": "cucumber-playwright-scaffold",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:cucumber",
+    "test:cucumber": "cucumber-js --require-module ts-node/register --require 'support/**/*.ts' --require 'steps/**/*.ts' 'features/**/*.feature'",
+    "explore": "node ./node_modules/@playwright/mcp/explore.js",
+    "playwright:install": "playwright install"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^13.0.0",
+    "@types/node": "^25.9.3",
+    "playwright": "*",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
+    "@playwright/cli": "^0.1.14",
+    "@playwright/mcp": "^0.0.76",
+    "@playwright/test": "^1.60.0",
+    "allure-playwright": "^3.10.0"
+  }
+}
