@@ -9,9 +9,9 @@ Feature: End to end Emp Management
   Scenario: End to End flow
     When I login with valid credentials "testadmin" and "Vibetestq@123#"
     Then I should be redirected to the dashboard page
-    When I navigate to the employee list page
-    Then I should see the PIM module is accessible
+    When I click on the PIM link
+    Then I should see the PIM module
     When I click on add button
-    Then I should see the add employee form
+    Then I should see the add employee form 
     When I add a new employee with unique details
-    Then the employee should be created successfully
+    Then I see the personal details page

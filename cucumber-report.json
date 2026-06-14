@@ -13,8 +13,8 @@
             "keyword": "Before",
             "hidden": true,
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 565180399
             }
           },
           {
@@ -26,8 +26,8 @@
               "location": "steps\\pages\\login.page.steps.ts:11"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 4582126499
             }
           },
           {
@@ -39,8 +39,8 @@
               "location": "steps\\pages\\login.page.steps.ts:16"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 1747259899
             }
           },
           {
@@ -49,37 +49,37 @@
             "line": 11,
             "name": "I should be redirected to the dashboard page",
             "match": {
-              "location": "steps\\pages\\dashboard.page.steps.ts:9"
+              "location": "steps\\pages\\dashboard.page.steps.ts:10"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 888687699
             }
           },
           {
             "arguments": [],
             "keyword": "When ",
             "line": 12,
-            "name": "I navigate to the employee list page",
+            "name": "I click on the PIM link",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:16"
+              "location": "steps\\pages\\dashboard.page.steps.ts:14"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 1873330799
             }
           },
           {
             "arguments": [],
             "keyword": "Then ",
             "line": 13,
-            "name": "I should see the PIM module is accessible",
+            "name": "I should see the PIM module",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:22"
+              "location": "steps\\pages\\pim.page.steps.ts:10"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 860333600
             }
           },
           {
@@ -88,11 +88,11 @@
             "line": 14,
             "name": "I click on add button",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:26"
+              "location": "steps\\pages\\pim.page.steps.ts:14"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 816067100
             }
           },
           {
@@ -101,11 +101,11 @@
             "line": 15,
             "name": "I should see the add employee form",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:30"
+              "location": "steps\\pages\\add-employee.page.steps.ts:13"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 835457800
             }
           },
           {
@@ -114,32 +114,32 @@
             "line": 16,
             "name": "I add a new employee with unique details",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:34"
+              "location": "steps\\pages\\add-employee.page.steps.ts:17"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 490417999
             }
           },
           {
             "arguments": [],
             "keyword": "Then ",
             "line": 17,
-            "name": "the employee should be created successfully",
+            "name": "I see the personal details page",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:41"
+              "location": "steps\\pages\\personal-details.page.steps.ts:9"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 5977749100
             }
           },
           {
             "keyword": "After",
             "hidden": true,
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 23769800
             }
           }
         ],

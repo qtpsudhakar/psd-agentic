@@ -17,6 +17,9 @@ export class PSWorld extends World {
     const b = await getBrowser();
     this._context = await b.newContext({ baseURL: this.baseUrl });
     this._page = await this._context.newPage();
+    // ── Playwright timeouts ──────────────────────────────────
+    this.page.setDefaultTimeout(30000);           // action timeout — click, fill, etc.
+    this.page.setDefaultNavigationTimeout(60000); // goto, waitForNavigation
   }
   async closeContext(): Promise<void> {
     if (this._context) {

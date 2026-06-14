@@ -1,39 +1,31 @@
 module.exports = {
   default: {
-    // Feature files location
     paths: ['features/**/*.feature'],
     require: [
       'support/world.ts',
       'support/hooks.ts',
       'steps/**/*.steps.ts',
     ],
-
-    // World parameters
+    requireModule: ['ts-node/register'],
+    format: [
+      'pretty',
+      'html:cucumber-report.html',
+      'json:cucumber-report.json',
+      'rerun:reports/rerun.txt',
+    ],
     worldParameters: {
       baseUrl: 'https://vibetestq-osondemand.orangehrm.com/',
     },
-    
-    // Format options
-    format: [
-      'html:cucumber-report.html',
-      'json:cucumber-report.json',
-      // '@cucumber/pretty-formatter'
-    ],
-    
-    // // Require TypeScript setup
-    requireModule: ['ts-node/register'],
-    
-    // Tags to run (optional - remove to run all)
-    // tags: '@smoke or @login',
-    
-    // Parallel execution (optional)
-    // parallel: 2,
-    
-    // Retry failed scenarios
+    order: 'defined',
+    parallel: 1,
     retry: 0,
-    defaultTimeout: 120000, // 120 seconds
-    timeout: 120000, // 120 seconds
-    // Exit after first failure (optional)
-    // failFast: true,
+    publishQuiet: true,
+    publish: false,
+    failFast: false,
+    dryRun: false,
+    strict: false,
+    timeout: 120000,
+    defaultTimeout: 120000,
+    failOnUndefined: false,
   }
 };

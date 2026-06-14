@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "npm run test:cucumber",
-    "test:cucumber": "cucumber-js --require-module ts-node/register --require 'support/**/*.ts' --require 'steps/**/*.ts' 'features/**/*.feature'",
+    "test:cucumber": "cucumber-js",
     "test:headed": "cross-env HEADLESS=false npm run test:cucumber",
     "test:headless": "cross-env HEADLESS=true npm run test:cucumber",
     "explore": "node ./node_modules/@playwright/mcp/explore.js",
@@ -20,9 +20,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
-    "@playwright/cli": "^0.1.14",
+"@playwright/cli": "^0.1.14",
     "@playwright/mcp": "^0.0.76",
     "@playwright/test": "^1.60.0",
-    "allure-playwright": "^3.10.0"
+    "allure-playwright": "^3.10.0",
+    "multiple-cucumber-html-reporter": "^4.0.0"
   }
 }
