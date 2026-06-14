@@ -40,7 +40,11 @@ export class PSWorld extends World {
 setWorldConstructor(PSWorld);
 
 export async function getBrowser(): Promise<Browser> {
-  if (!browser) browser = await chromium.launch({ headless: true });
+  if (!browser) {
+    const headlessEnv = process.env.HEADLESS; // 'true' or 'false'
+    const headless = typeof headlessEnv === 'string' ? headlessEnv === 'true' : false; // default headed (headless=false)
+    browser = await chromium.launch({ headless });
+  }
   return browser;
 }
 

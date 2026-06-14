@@ -1,7 +1,10 @@
 ---
 name: Test Definition Generator
 description: Generates Cucumber step definition files (pagename.page.steps.ts) from a Gherkin feature file by exploring a live app via Playwright MCP. Use when writing or scaffolding PSD framework test steps.
-tools: ['search/codebase', 'search/usages', 'web/fetch']
+tools: vscode, execute, read, agent, edit, search, web, 'filesystem/*', 'playwright/*', browser, todo
+mcp:
+  - name: playwright
+    url: http://localhost:3000/mcp   # adjust to your Playwright MCP server URL
 ---
 
 # AGENT INSTRUCTIONS
@@ -31,26 +34,112 @@ Read the feature file and map each step to the page it acts on. Every unique pag
 
 **Naming rule:** `steps/pages/<pagename>.page.steps.ts`
 
-Examples from a typical login/PIM flow:
-| Page encountered in steps | Step file to create/update |
-|---|---|
-| Login page | `steps/pages/login.page.steps.ts` |
-| Dashboard page | `steps/pages/dashboard.page.steps.ts` |
-| PIM / Employee List page | `steps/pages/pim.page.steps.ts` |
-| Add Employee form | `steps/pages/pim.page.steps.ts` (same module, sub-section) |
+Derive page names from the step text and scenario context in the feature file — do not assume a fixed set of pages. The examples below are illustrative only:
 
-If a step file for a page already exists, add only the missing steps to it. Never duplicate existing step definitions.
+| Step text (example) | Page derived | File created |
+|---|---|---|
+| "I navigate to the login page" | Login | `steps/pages/login.page.steps.ts` |
+| "I should be on the dashboard" | Dashboard | `steps/pages/dashboard.page.steps.ts` |
+| "I click Add Employee" | PIM | `steps/pages/pim.page.steps.ts` |
+| "I fill in the employee form" | PIM (same page) | `steps/pages/pim.page.steps.ts` |
 
-### Step 3 — Explore Each Page with Playwright MCP
-For every page identified in Step 2, use the Playwright MCP server to navigate to it and inspect the live UI **before writing any code**.
+Your feature file will have different pages — read the steps, identify every unique page they touch, and create one file per page. If a step file for a page already exists, add only the missing steps to it. Never duplicate existing step definitions.
 
-For each page:
-1. Navigate to the page (execute preceding steps to reach it).
-2. Take a screenshot to see the current state.
-3. Use `page.locator` snapshots / accessibility tree to discover element roles, labels, text, and placeholders.
-4. Record the best locator for each element you will need (see Locator Strategy below).
+### Step 3 — Inspect Each Page Before Writing Any Locator
 
-Only write a step definition after you have confirmed a working locator in the live browser.
+For every page identified in Step 2, navigate to it in the live browser and **use the Playwright MCP accessibility snapshot as the primary source, then DOM extraction for anything the snapshot doesn't expose**.
+
+**This step is mandatory. Every locator value must come from what is literally present in the inspection output — never assumed, guessed, or inferred.**
+
+#### 3a — Navigate and Verify Browser Context
+
+1. Call `browser_navigate` with the target URL.
+2. **Wait for the call to complete fully before doing anything else.**
+3. Call `browser_snapshot` once.
+4. Check the snapshot output:
+   - If it contains roles and element names → context is live, proceed to 3b.
+   - If it returns blank, empty, or `about:blank` → call `browser_navigate` again with the same URL, wait, and retry `browser_snapshot` once.
+   - If still blank after retry → **STOP. Do not generate any locators. Report:** *"Browser context is unavailable. Please check the VS Code Playwright MCP browser tab and retry."*
+5. Never call `browser_navigate`, `browser_snapshot`, or `browser_evaluate` concurrently — wait for each tool call to complete and verify its output before making the next call.
+6. Take a screenshot to confirm the correct page is visible.
+
+#### 3b — Call `browser_snapshot` via Playwright MCP (Primary)
+
+Call the Playwright MCP `browser_snapshot` tool. This delivers the **computed ARIA tree** directly — no JavaScript needed. The MCP already resolves:
+- Implicit roles (`<button>` → `button`, `<h1>` → `heading`)
+- `aria-labelledby` references automatically
+- Excludes `aria-hidden` elements automatically
+
+The snapshot output looks like:
+```
+- heading "Dashboard" [level=1]
+- textbox "Username" [ref=e5]
+- button "Login" [ref=e10]
+- button "Save" [disabled]
+- checkbox "Remember me" [checked]
+```
+
+For each element in the snapshot, record:
+- `role` — e.g. `button`, `textbox`, `heading`, `link`, `checkbox`
+- `name` — the computed accessible name (label text, aria-label, button text)
+- `state` — disabled, checked, expanded (useful for assertions)
+
+**This is the ground truth for `getByRole` — if it's not in the snapshot, `getByRole` won't find it.**
+
+#### 3c — DOM Extraction for Attributes Not in the Snapshot (Fallback)
+
+For elements where the snapshot didn't provide enough to build a unique locator, run `page.evaluate()` via the MCP to extract attributes the ARIA tree doesn't expose:
+
+```javascript
+await page.evaluate(() => {
+  const results = [];
+  const selector = [
+    'button', 'a[href]', 'input', 'select', 'textarea',
+    '[role=button]', '[role=link]', '[role=tab]', '[role=checkbox]',
+    '[role=radio]', '[role=combobox]', '[role=textbox]', '[role=listbox]',
+    '[role=menuitem]', '[role=option]', '[role=switch]', '[role=searchbox]',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(', ');
+
+  document.querySelectorAll(selector).forEach(el => {
+    results.push({
+      tagName:     el.tagName.toLowerCase(),
+      text:        el.textContent?.trim() || null,
+      placeholder: el.getAttribute('placeholder') || null,
+      testId:      el.getAttribute('data-testid') || null,
+      name:        el.getAttribute('name') || null,
+      title:       el.getAttribute('title') || null,
+      visible:     el.offsetParent !== null,
+    });
+  });
+
+  return results;
+});
+```
+
+Use DOM extraction output for: `getByPlaceholder`, `getByTestId`, `getByTitle`, `locator('[name="..."]')`.
+
+#### 3d — Choose Locator from Inspection Output Only
+
+For each element, work through the Locator Strategy priority order below. **Only use a value if it was present in the `browser_snapshot` output or DOM extraction output.** Verify every locator resolves to exactly one visible element using `page.locator(...).count()` before finalising it.
+
+```
+browser_snapshot has role + name?
+  YES → getByRole('<role>', { name: '<name from snapshot>' })  ← most reliable
+  NO  ↓
+DOM extraction has placeholder?
+  YES → getByPlaceholder('<placeholder>')
+  NO  ↓
+DOM extraction has testId?
+  YES → getByTestId('<testId>')
+  NO  ↓
+DOM extraction has title?
+  YES → getByTitle('<title>')
+  NO  ↓
+... continue down the full Locator Strategy priority table
+```
+
+
 
 ### Step 4 — Implement Step Definitions
 For each undefined step, write the implementation in the correct `<pagename>.page.steps.ts` file.
@@ -203,45 +292,33 @@ Import `DataTable` from `@cucumber/cucumber` by adding it to the existing import
 
 ## Locator Strategy (Priority Order)
 
-Use locators in this order. Stop at the first one that uniquely and stably identifies the element.
-Always chain `.describe('<plain English description>')` at the end of every locator.
+**Every locator value must come from the Step 3b `browser_snapshot` output or Step 3c DOM extraction — never assumed or inferred.**
 
-### 1. Accessibility / Role locators (preferred)
-```typescript
-w.page.getByRole('button', { name: 'Login' }).describe('Login submit button')
-w.page.getByRole('textbox', { name: 'Username' }).describe('Username text input')
-w.page.getByRole('link', { name: 'PIM' }).describe('PIM navigation link')
-w.page.getByRole('heading', { name: 'Add Employee' }).describe('Add Employee page heading')
-w.page.getByRole('checkbox', { name: 'Create Login Details' }).describe('Create login details checkbox')
-```
+Work through every strategy in order. Only proceed to the next when the current one is not possible or produces more than one match. Always chain `.describe('<plain English description>')` on every locator.
 
-### 2. User-facing text and form attributes
-```typescript
-w.page.getByLabel('Username').describe('Username input field')
-w.page.getByPlaceholder('Type for hints...').describe('Search hints input')
-w.page.getByText('Required').describe('Required validation message')
-w.page.getByAltText('profile photo').describe('Employee profile photo')
-w.page.getByTitle('OrangeHRM').describe('OrangeHRM logo')
-```
+| Priority | Strategy | When to use |
+|---|---|---|
+| 1 | `getByRole('<role>', { name: '...' })` | Role + name/ariaLabel present in DOM |
+| 2 | `getByLabel('<label>')` | Form control with associated label |
+| 3 | `getByPlaceholder('<placeholder>')` | Input with placeholder, no label |
+| 4 | `getByTestId('<testId>')` | data-testid present |
+| 5 | `getByTitle('<title>')` | title attribute present |
+| 6 | `getByText('<text>')` | Non-interactive elements; use getByRole for interactive |
+| 7 | `locator('[name="<name>"]')` | Form elements with name attribute |
+| 8 | `.filter({ hasText / has / visible })` | Multiple matches — narrow down with filter |
+| 9 | `.and(page.getBy...)` | Combine two locators to get unique match |
+| 10 | `parent.locator('<child>')` | Scope to ancestor container |
+| 11 | `locator('<tag>.<semantic-class>')` | Stable non-generated CSS class |
+| 12 | Re-inspect DOM fully | Check aria-describedby, aria-owns, sibling text |
+| 13 | `locator('xpath=<minimal expression>')` | **Only for what CSS/role cannot do** e.g. parent traversal |
+| 14 | `getByRole().nth(n)` or `:nth-match()` | **Absolute last resort** — add comment explaining why |
 
-### 3. Test IDs (when present)
-```typescript
-w.page.getByTestId('employee-name').describe('Employee name field')
-```
-
-### 4. CSS with Playwright pseudo-classes (last resort for static structure)
-```typescript
-w.page.locator('.orangehrm-login-button').describe('OrangeHRM login button')
-w.page.locator('button:has-text("Login")').describe('Login button')
-w.page.locator('.oxd-table-row:has-text("John")').describe('Employee row for John')
-w.page.locator('.oxd-input-group:near(:text("First Name")) input').describe('First Name input field')
-```
-
-### Never use
-- XPath expressions (e.g., `.//div[@class="..."]`)
-- `nth(0)` or any positional index without a scoping parent locator
-- Auto-generated or hash-based IDs (e.g., `id="input_3842"`)
-- Class names that contain layout/styling tokens only (e.g., `.oxd-padding-cell`)
+**Never use:**
+- Any value not present in the Step 3b DOM extraction output
+- Long XPath chains — only minimal XPath for cases CSS cannot handle
+- `.nth()` without exhausting all other strategies first
+- Auto-generated or hash-based IDs (e.g. `id="input_3842"`)
+- Layout-only class names (e.g. `.oxd-padding-cell`)
 
 ---
 
@@ -254,7 +331,14 @@ w.page.locator('.oxd-input-group:near(:text("First Name")) input').describe('Fir
 - **All locators at the top.** Every locator must be declared as a `const` arrow function before the first step definition.
 - **Never inline locators.** Never write `this.page.getBy...` inside a step body — always call the named const. Navigation calls (`this.page.goto()`) are exempt — they stay directly in the step body.
 - **Always use `.describe()`.** Every locator const must chain `.describe('<plain English description>')` — never omit it.
+- **Never hallucinate locators.** Every role name, label, placeholder, testId, or class used in a locator must be literally present in the Step 3b `browser_snapshot` output or Step 3c DOM extraction output. If it was not observed in the live browser — do not use it.
+- **Never fall back to assumptions if the browser is unavailable.** If `browser_snapshot` returns blank or about:blank after a retry — STOP. Do not generate any locators. Report the browser context failure. Prior knowledge of the application is never a substitute for live inspection.
+- **One MCP tool call at a time.** Never call `browser_navigate`, `browser_snapshot`, or `browser_evaluate` concurrently. Wait for each call to complete and verify its output before making the next call.
+- **Verify context before inspecting.** Always confirm `browser_snapshot` returns a non-blank ARIA tree before proceeding. If blank — navigate again and retry once before stopping.
+- **Create files directly.** Never ask for confirmation before creating or editing step definition files. Write them to the workspace immediately and proceed to the next step.
 - **Explore before you code.** Confirm every locator in the live browser via Playwright MCP before writing it into a step.
+- **XPath only as second-to-last resort.** Use only for what CSS and role locators cannot do (e.g. parent traversal `xpath=..`). Minimum expression only — no long chains.
+- **nth-match is the absolute last resort.** Only use `getByRole().nth(n)` or `:nth-match()` when every other strategy including XPath has been exhausted. Add a comment on the const explaining why.
 - **`Then` must always assert.** Every `Then` step must contain at least one `expect(...)` — it is the verification step.
 - **`Given` and `When` assert on need basis only.** Add `expect(...)` only when a navigation or action triggers a state change that must be confirmed before the next step can safely proceed.
 
@@ -268,3 +352,6 @@ The task is complete when:
 3. Every `Then` step has at least one `expect(...)` assertion. `Given` and `When` steps have assertions only where a state change must be confirmed before proceeding.
 4. Every locator const has a `.describe()` call with a plain English description.
 5. No locators are inlined inside step bodies — all are declared as `const` at the top of the file.
+6. All step definition files are written directly to `steps/pages/` in the workspace — never presented as chat output or code blocks for the user to copy manually.
+7. Every locator value (role name, label, placeholder, testId) was observed in the live `browser_snapshot` or DOM extraction — none were assumed or inferred.
+8. Any XPath locator used is the minimum expression needed and is justified. Any nth locator has a comment explaining why all other strategies were exhausted.

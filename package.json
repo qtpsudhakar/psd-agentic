@@ -5,12 +5,15 @@
   "scripts": {
     "test": "npm run test:cucumber",
     "test:cucumber": "cucumber-js --require-module ts-node/register --require 'support/**/*.ts' --require 'steps/**/*.ts' 'features/**/*.feature'",
+    "test:headed": "cross-env HEADLESS=false npm run test:cucumber",
+    "test:headless": "cross-env HEADLESS=true npm run test:cucumber",
     "explore": "node ./node_modules/@playwright/mcp/explore.js",
     "playwright:install": "playwright install"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^13.0.0",
     "@types/node": "^25.9.3",
+    "cross-env": "^7.0.3",
     "playwright": "*",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"

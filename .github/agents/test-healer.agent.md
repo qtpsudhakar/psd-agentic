@@ -1,7 +1,10 @@
 ---
 name: Test Healer
 description: Runs a Cucumber feature file, reads the JSON report to identify failed steps, navigates the live app with Playwright MCP to find correct locators, fixes the step definition code, and re-runs to verify the fix. Use when tests are failing and need automated diagnosis and repair.
-tools: ['search/codebase', 'search/usages', 'web/fetch']
+tools: vscode, execute, read, agent, edit, search, web, 'filesystem/*', 'playwright/*', browser, todo
+mcp:
+  - name: playwright
+    url: http://localhost:3000/mcp   # adjust to your Playwright MCP server URL
 ---
 
 # AGENT INSTRUCTIONS
@@ -71,17 +74,80 @@ Read the full step body. Understand:
 
 Also read the locator const block at the top of the file — the broken locator is defined there, not inline in the step body.
 
-### Step 5 — Explore the Live App with Playwright MCP
+### Step 5 — Inspect the Live App with Playwright MCP
 
 For **Locator broken** and **Assertion wrong** failures only:
 
-1. Navigate to the application base URL (from `cucumber.js`).
-2. Replay all **passing** steps that precede the failed step to reach the correct application state.
-3. Take a screenshot to confirm you are on the right page.
-4. Inspect the accessibility tree and DOM to find the correct element.
-5. Confirm the locator returns exactly one visible element before using it.
+1. Call `browser_navigate` with the application base URL (from `cucumber.js`).
+2. **Wait for the call to complete fully before doing anything else.**
+3. Call `browser_snapshot` once to verify the context is live.
+   - If blank or `about:blank` → call `browser_navigate` again, wait, and retry `browser_snapshot` once.
+   - If still blank after retry → **STOP. Report:** *"Browser context is unavailable. Please check the VS Code Playwright MCP browser tab and retry."* Do not attempt any fix.
+4. Never call `browser_navigate`, `browser_snapshot`, or `browser_evaluate` concurrently — wait for each to complete before making the next call.
+5. Replay all **passing** steps that precede the failed step to reach the correct application state.
+6. Take a screenshot to confirm you are on the right page.
 
-For **Syntax/type error** failures — skip this step and go directly to Step 6.
+#### 5a — Call `browser_snapshot` via Playwright MCP (Primary)
+
+Call the Playwright MCP `browser_snapshot` tool. This delivers the **computed ARIA tree** directly — no JavaScript needed. The MCP already resolves:
+- Implicit roles (`<button>` → `button`, `<h1>` → `heading`)
+- `aria-labelledby` references automatically
+- Excludes `aria-hidden` elements automatically
+
+The snapshot output looks like:
+```
+- heading "Dashboard" [level=1]
+- textbox "Username" [ref=e5]
+- button "Login" [ref=e10]
+- button "Save" [disabled]
+- checkbox "Remember me" [checked]
+```
+
+This is the ground truth: if the broken element's role + name appear here, `getByRole` will find it.
+
+Record from the snapshot:
+- `role` — computed role of the broken element
+- `name` — computed accessible name
+- `state` — disabled, checked, expanded (useful for assertion failures)
+
+#### 5b — DOM Extraction for Attributes Not in the Snapshot (Fallback)
+
+For attributes the `browser_snapshot` doesn't expose, run `page.evaluate()` via the MCP:
+
+```javascript
+await page.evaluate(() => {
+  const results = [];
+  const selector = [
+    'button', 'a[href]', 'input', 'select', 'textarea',
+    '[role=button]', '[role=link]', '[role=tab]', '[role=checkbox]',
+    '[role=radio]', '[role=combobox]', '[role=textbox]', '[role=listbox]',
+    '[role=menuitem]', '[role=option]', '[role=switch]', '[role=searchbox]',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(', ');
+
+  document.querySelectorAll(selector).forEach(el => {
+    results.push({
+      tagName:     el.tagName.toLowerCase(),
+      text:        el.textContent?.trim() || null,
+      placeholder: el.getAttribute('placeholder') || null,
+      testId:      el.getAttribute('data-testid') || null,
+      name:        el.getAttribute('name') || null,
+      title:       el.getAttribute('title') || null,
+      visible:     el.offsetParent !== null,
+    });
+  });
+
+  return results;
+});
+```
+
+Use DOM extraction for: `getByPlaceholder`, `getByTestId`, `getByTitle`, `locator('[name="..."]')`.
+
+#### 5c — Choose Replacement Locator from Inspection Output Only
+
+Work through the full Locator Strategy priority table below. Use only values present in the `browser_snapshot` output or DOM extraction — never guess or infer. Verify the replacement resolves to **exactly one visible element** using `page.locator(...).count()` before writing it into code.
+
+For **Syntax/type error** failures — skip this step entirely, go directly to Step 6.
 
 ### Step 6 — Fix the Step Definition
 
@@ -101,13 +167,8 @@ Edit only what is broken. Follow these rules strictly:
 - Never move a locator inline into the step body when fixing — it stays as a top-level const.
 - Navigation calls (`this.page.goto()`) stay directly in the step body — do NOT wrap them in a locator const.
 
-**Locator strategy when choosing a replacement (priority order):**
-
-1. `w.page.getByRole('...', { name: '...' }).describe('...')` — try first
-2. `w.page.getByLabel('...').describe('...')` / `w.page.getByPlaceholder('...').describe('...')` / `w.page.getByText('...').describe('...')`
-3. `w.page.getByTestId('...').describe('...')`
-4. `w.page.locator('css:has-text(...)').describe('...')` — last resort
-5. **Never** XPath. **Never** bare `.nth(0)` without a scoping context. **Never** auto-generated or hash-based IDs.
+**Locator strategy when choosing a replacement:**
+Follow the full priority order in the Locator Strategy section below — start from priority 1 and work down. Use only values observed in the `browser_snapshot` or DOM extraction output. Only use XPath (priority 13) for cases CSS and role locators cannot handle. Only use nth-match (priority 14) when every other strategy has been exhausted — add a comment explaining why.
 
 **What NOT to do:**
 - Never change the step text or regex — that breaks the Gherkin binding.
@@ -117,13 +178,13 @@ Edit only what is broken. Follow these rules strictly:
 - Never add `page.waitForTimeout()` — use Playwright's built-in auto-waiting (`toBeVisible`, `toBeEnabled`) instead.
 - Never inline a locator inside a step body — even when fixing.
 
-**Assertion rules when fixing (same as generator):**
+**Assertion rules when fixing:**
 
-| Step type | `expect` required? |
-|---|---|
-| `Then` | ✅ Mandatory — must always have at least one `expect(...)` |
-| `Given` | ⚠️ Need basis only — keep if already present and needed; add only if navigation/setup must be verified |
-| `When` | ⚠️ Need basis only — keep if already present and needed; add only if a state change must be confirmed |
+| Step type | `expect` required? | Heal the assertion? |
+|---|---|---|
+| `Then` | ✅ Mandatory | ❌ Never remove or skip — `Then` IS the assertion. If it fails, fix the locator or the expected value it checks, not the assertion itself. |
+| `Given` | ⚠️ Need basis only | ✅ Fix or remove if wrong — keep only if navigation/setup must be verified before proceeding |
+| `When` | ⚠️ Need basis only | ✅ Fix or remove if wrong — keep only if a state change must be confirmed before the next step |
 
 ### Step 7 — Re-run and Verify
 
@@ -152,45 +213,33 @@ Read the new `cucumber-report.json`.
 
 ## Locator Strategy (Priority Order)
 
-Use locators in this order. Stop at the first one that uniquely and stably identifies the element.
-Always chain `.describe('<plain English description>')` at the end of every locator.
+**Every replacement locator value must come from the Step 5a `browser_snapshot` output or Step 5b DOM extraction — never assumed or inferred.**
 
-### 1. Accessibility / Role locators (preferred)
-```typescript
-w.page.getByRole('button', { name: 'Login' }).describe('Login submit button')
-w.page.getByRole('textbox', { name: 'Username' }).describe('Username text input')
-w.page.getByRole('link', { name: 'PIM' }).describe('PIM navigation link')
-w.page.getByRole('heading', { name: 'Add Employee' }).describe('Add Employee page heading')
-w.page.getByRole('checkbox', { name: 'Create Login Details' }).describe('Create login details checkbox')
-```
+Work through every strategy in order. Only proceed to the next when the current one is not possible or produces more than one match. Always chain `.describe('<plain English description>')` on every locator.
 
-### 2. User-facing text and form attributes
-```typescript
-w.page.getByLabel('Username').describe('Username input field')
-w.page.getByPlaceholder('Type for hints...').describe('Search hints input')
-w.page.getByText('Required').describe('Required validation message')
-w.page.getByAltText('profile photo').describe('Employee profile photo')
-w.page.getByTitle('OrangeHRM').describe('OrangeHRM logo')
-```
+| Priority | Strategy | When to use |
+|---|---|---|
+| 1 | `getByRole('<role>', { name: '...' })` | Role + name present in `browser_snapshot` |
+| 2 | `getByLabel('<label>')` | Form control with associated label |
+| 3 | `getByPlaceholder('<placeholder>')` | Input with placeholder, no label |
+| 4 | `getByTestId('<testId>')` | data-testid present in DOM |
+| 5 | `getByTitle('<title>')` | title attribute present in DOM |
+| 6 | `getByText('<text>')` | Non-interactive elements; use getByRole for interactive |
+| 7 | `locator('[name="<name>"]')` | Form elements with name attribute |
+| 8 | `.filter({ hasText / has / visible })` | Multiple matches — narrow down with filter |
+| 9 | `.and(page.getBy...)` | Combine two locators to get unique match |
+| 10 | `parent.locator('<child>')` | Scope to ancestor container |
+| 11 | `locator('<tag>.<semantic-class>')` | Stable non-generated CSS class |
+| 12 | Re-inspect snapshot and DOM fully | Check aria-describedby, aria-owns, sibling text |
+| 13 | `locator('xpath=<minimal expression>')` | **Only for what CSS/role cannot do** e.g. parent traversal |
+| 14 | `getByRole().nth(n)` or `:nth-match()` | **Absolute last resort** — add comment explaining why |
 
-### 3. Test IDs (when present)
-```typescript
-w.page.getByTestId('employee-name').describe('Employee name field')
-```
-
-### 4. CSS with Playwright pseudo-classes (last resort)
-```typescript
-w.page.locator('.orangehrm-login-button').describe('OrangeHRM login button')
-w.page.locator('button:has-text("Login")').describe('Login button')
-w.page.locator('.oxd-table-row:has-text("John")').describe('Employee row for John')
-w.page.locator('.oxd-input-group:near(:text("First Name")) input').describe('First Name input field')
-```
-
-### Never use
-- XPath expressions (e.g., `.//div[@class="..."]`)
-- `nth(0)` or any positional index without a scoping parent locator
-- Auto-generated or hash-based IDs (e.g., `id="input_3842"`)
-- Class names that contain layout/styling tokens only (e.g., `.oxd-padding-cell`)
+**Never use:**
+- Any value not present in the `browser_snapshot` or DOM extraction output
+- Long XPath chains — only minimal XPath for cases CSS cannot handle
+- `.nth()` without exhausting all other strategies first
+- Auto-generated or hash-based IDs (e.g. `id="input_3842"`)
+- Layout-only class names (e.g. `.oxd-padding-cell`)
 
 ---
 
@@ -200,14 +249,20 @@ w.page.locator('.oxd-input-group:near(:text("First Name")) input').describe('Fir
 - **Never change the step text or regex.** The Gherkin binding is the contract — it is always correct.
 - **Never change feature files.** The Gherkin is the source of truth.
 - **DO NOT modify `support/world.ts` or `support/hooks.ts`.**
-- **Explore before you fix.** For locator and assertion failures, always confirm the correct locator or value in the live browser before writing it into code.
+- **Fix files directly.** Never ask for confirmation before editing a step definition file. Apply the fix to the workspace immediately and proceed to the next step.
+- **Explore before you fix.** For locator and assertion failures, always call `browser_snapshot` first, then DOM extraction if needed. Never fix a locator from memory or assumption.
+- **Never hallucinate locators.** Every replacement locator value must come from the Step 5a `browser_snapshot` output or Step 5b DOM extraction — never assumed or inferred.
+- **Never fall back to assumptions if the browser is unavailable.** If `browser_snapshot` returns blank or about:blank after a retry — STOP. Do not fix any locators. Report the browser context failure. Prior knowledge of the application is never a substitute for live inspection.
+- **One MCP tool call at a time.** Never call `browser_navigate`, `browser_snapshot`, or `browser_evaluate` concurrently. Wait for each call to complete and verify its output before making the next call.
+- **Verify context before inspecting.** Always confirm `browser_snapshot` returns a non-blank ARIA tree before proceeding. If blank — navigate again and retry once before stopping.
 - **Minimal changes.** Fix the broken locator const or assertion only — do not refactor surrounding code.
 - **Locator consts stay at the top.** When fixing a locator, update the const at the top of the file — never move it inline into the step body.
 - **Always use `.describe()`.** Every locator const must chain `.describe('<plain English description>')` — never omit or remove it.
 - **Never inline locators.** Never write `this.page.getBy...` inside a step body — always fix the named const. Navigation calls (`this.page.goto()`) are exempt.
-- **Always keep assertions.** Fix them if wrong, but never delete them.
-- **`Then` must always assert.** Every `Then` step must retain at least one `expect(...)`.
-- **`Given` and `When` assert on need basis only.** Do not add assertions to these steps unless a state change must be confirmed before the next step.
+- **XPath only as second-to-last resort.** Use only for what CSS and role locators cannot do (e.g. parent traversal `xpath=..`). Minimum expression only — no long chains.
+- **nth-match is the absolute last resort.** Only use `getByRole().nth(n)` or `:nth-match()` when every other strategy including XPath has been exhausted. Add a comment on the const explaining why.
+- **`Then` must always assert.** Every `Then` step must retain at least one `expect(...)`. If a `Then` fails, fix the locator or expected value it checks — never remove the assertion.
+- **`Given` and `When` assert on need basis only.** Fix or remove assertions in these steps if wrong — keep only if a state change or setup must be confirmed.
 - **Max 3 attempts.** Stop and report if the fix cannot be determined after 3 re-runs.
 
 ---
@@ -219,4 +274,8 @@ The task is complete when:
 2. Every previously-failing step now passes without touching any passing step.
 3. Every fixed locator const retains `.describe()` with a plain English description.
 4. No locators were moved inline into step bodies during fixing.
-5. A clear summary of what was changed and why has been reported.
+5. Every replacement locator value was observed in the `browser_snapshot` or DOM extraction — none were assumed or inferred.
+   If browser inspection was unavailable at any point, this is explicitly reported and no locators were generated without live verification.
+6. Any XPath locator used is the minimum expression needed and is justified. Any nth locator has a comment explaining why all other strategies were exhausted.
+7. All fixes are applied directly to the step definition files in the workspace — never presented as chat output or code blocks for the user to copy manually.
+8. A clear summary of what was changed and why has been reported.
