@@ -1,5 +1,6 @@
 import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
 import { Browser, BrowserContext, Page, chromium } from 'playwright';
+import { expect as baseExpect } from '@playwright/test';
 
 let browser: Browser;
   
@@ -54,3 +55,5 @@ export async function getBrowser(): Promise<Browser> {
 export async function closeBrowser(): Promise<void> {
   if (browser) await browser.close();
 }
+
+export const expect = baseExpect.configure({ timeout: 10000 });

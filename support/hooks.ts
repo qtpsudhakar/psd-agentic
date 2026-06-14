@@ -4,8 +4,10 @@ import { expect } from '@playwright/test';
 
 setDefaultTimeout(120_000);
 
+
 Before(async function (this: PSWorld) {
   await this.initPlaywright();
+  expect.configure({ timeout: 10000 });
 
 });
 
