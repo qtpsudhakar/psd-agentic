@@ -10,16 +10,24 @@
         "name": "End to End flow",
         "steps": [
           {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 276737200
+            }
+          },
+          {
             "arguments": [],
             "keyword": "Given ",
             "line": 7,
             "name": "I navigate to the login page",
             "match": {
-              "location": "steps\\pages\\login.steps.ts:5"
+              "location": "steps\\pages\\login.page.steps.ts:5"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 6963776200
             }
           },
           {
@@ -28,11 +36,11 @@
             "line": 10,
             "name": "I login with valid credentials \"testadmin\" and \"Vibetestq@123#\"",
             "match": {
-              "location": "steps\\pages\\login.steps.ts:11"
+              "location": "steps\\pages\\login.page.steps.ts:13"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 2973011099
             }
           },
           {
@@ -41,11 +49,11 @@
             "line": 11,
             "name": "I should be redirected to the dashboard page",
             "match": {
-              "location": "steps\\pages\\dashboard.steps.ts:5"
+              "location": "steps\\pages\\dashboard.page.steps.ts:5"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "passed",
+              "duration": 129960800
             }
           },
           {
@@ -53,9 +61,12 @@
             "keyword": "When ",
             "line": 12,
             "name": "I navigate to the employee list page",
+            "match": {
+              "location": "steps\\pages\\dashboard.page.steps.ts:15"
+            },
             "result": {
-              "status": "undefined",
-              "duration": 0
+              "status": "passed",
+              "duration": 22858500
             }
           },
           {
@@ -64,11 +75,12 @@
             "line": 13,
             "name": "I should see the PIM module is accessible",
             "match": {
-              "location": "steps\\pages\\pim.steps.ts:13"
+              "location": "steps\\pages\\dashboard.page.steps.ts:28"
             },
             "result": {
-              "status": "skipped",
-              "duration": 0
+              "status": "failed",
+              "duration": 10020009300,
+              "error_message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('button:has-text(\"Search\"), input[placeholder*=\"Employee Name\"], .oxd-table').first()\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"to.be.visible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('button:has-text(\"Search\"), input[placeholder*=\"Employee Name\"], .oxd-table').first()\u001b[22m\n\n    at captureRawStack (D:\\QtpSudhakarOrg\\psd-agentic\\node_modules\\playwright-core\\lib\\coreBundle.js:3130:17)\n    at callMatcherAsStep (D:\\QtpSudhakarOrg\\psd-agentic\\node_modules\\playwright\\lib\\matchers\\expect.js:12873:57)\n    at Object.toBeVisible (D:\\QtpSudhakarOrg\\psd-agentic\\node_modules\\playwright\\lib\\matchers\\expect.js:12863:23)\n    at PSWorld.<anonymous> (D:\\QtpSudhakarOrg\\psd-agentic\\steps\\pages\\dashboard.page.steps.ts:31:36)"
             }
           },
           {
@@ -77,7 +89,7 @@
             "line": 14,
             "name": "I click on add button",
             "match": {
-              "location": "steps\\pages\\pim.steps.ts:23"
+              "location": "steps\\pages\\employee-list.page.steps.ts:5"
             },
             "result": {
               "status": "skipped",
@@ -90,7 +102,7 @@
             "line": 15,
             "name": "I should see the add employee form",
             "match": {
-              "location": "steps\\pages\\pim.steps.ts:28"
+              "location": "steps\\pages\\employee-list.page.steps.ts:17"
             },
             "result": {
               "status": "skipped",
@@ -103,7 +115,7 @@
             "line": 16,
             "name": "I add a new employee with unique details",
             "match": {
-              "location": "steps\\pages\\pim.steps.ts:33"
+              "location": "steps\\pages\\add-employee.page.steps.ts:5"
             },
             "result": {
               "status": "skipped",
@@ -116,11 +128,19 @@
             "line": 17,
             "name": "the employee should be created successfully",
             "match": {
-              "location": "steps\\pages\\pim.steps.ts:43"
+              "location": "steps\\pages\\add-employee.page.steps.ts:18"
             },
             "result": {
               "status": "skipped",
               "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "passed",
+              "duration": 17350300
             }
           }
         ],

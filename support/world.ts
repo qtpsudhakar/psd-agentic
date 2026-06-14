@@ -1,19 +1,16 @@
 import { World, IWorldOptions, setWorldConstructor } from '@cucumber/cucumber';
 import { Browser, BrowserContext, Page, chromium } from 'playwright';
-import { IEmployeeData, generateEmployeeData } from './data';
 
 let browser: Browser;
-
+  
 export class PSWorld extends World {
   private _page?: Page;
   private _context?: BrowserContext;
   baseUrl: string;
-  employeeData: IEmployeeData;
 
   constructor(options: IWorldOptions) {
     super(options);
     this.baseUrl = (options.parameters as any).baseUrl ?? process.env.AUT_BASE_URL ?? '';
-    this.employeeData = generateEmployeeData();
   }
 
   async initPlaywright(): Promise<void> {

@@ -23,8 +23,6 @@
       "browser": "chromium",
       "headless": true
     },
-    "tags": "@smoke or (@login and not @wip)",
-    "name": ".*",
     "order": "defined",
     "parallel": 1,
     "retry": 0,
