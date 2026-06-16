@@ -20,10 +20,11 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
-"@playwright/cli": "^0.1.14",
+    "@playwright/cli": "^0.1.14",
     "@playwright/mcp": "^0.0.76",
     "@playwright/test": "^1.60.0",
     "allure-playwright": "^3.10.0",
-    "multiple-cucumber-html-reporter": "^4.0.0"
+    "multiple-cucumber-html-reporter": "^4.0.0",
+    "playwright-cli": "^0.262.0"
   }
 }

@@ -26,6 +26,11 @@ permissions:
   contents: read
   pull-requests: read
   copilot-requests: write
+network:
+  allowed:
+    # ↓ Replace with your app's domain. Wildcards work: *.myapp.com
+    # This allows playwright-cli through the gh-aw firewall to reach the live app.
+    - vibetestq-osondemand.orangehrm.com
 safe-outputs:
   create-pull-request:
     title-prefix: '[test-gen] '
@@ -38,6 +43,20 @@ tools:
     toolsets:
       - repos
       - pull_requests
+pre-agent-steps:
+  - name: Validate APP_URL
+    env:
+      APP_URL: ${{ secrets.APP_URL || github.event.inputs.app_url }}
+    run: |
+      if [ -z "$APP_URL" ]; then
+        echo "::error::APP_URL is not configured. Add it as a repository secret (Settings → Secrets → Actions → New repository secret, name: APP_URL) or pass it via the workflow_dispatch app_url input."
+        exit 1
+      fi
+      echo "APP_URL is set: ${APP_URL%%/*}//<redacted>"
+  - name: Install npm dependencies
+    run: npm ci
+  - name: Install Playwright browser for playwright-cli
+    run: npx playwright-cli install-browser
 ---
 
 # AGENT INSTRUCTIONS
@@ -93,14 +112,6 @@ Pass this list to Step 1 to scope the dry run.
 - If `inputs.app_url` is provided → use it.
 - Otherwise use the `APP_URL` repository secret (injected as the `APP_URL` environment variable).
 - If neither is available, **stop and report**: *"APP_URL is not set. Add it as a repository secret or supply it via the workflow_dispatch input."*
-
-### 0c — Install dependencies and browser
-
-Run once at the start of the workflow, before processing any feature file:
-```bash
-npm ci
-npx playwright-cli install-browser
-```
 
 ---
 
