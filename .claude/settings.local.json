@@ -3,7 +3,8 @@
     "allow": [
       "Skill(claude-api)",
       "Skill(claude-api:*)",
-      "Bash(node -e \"require\\('@anthropic-ai/sdk'\\)\")"
+      "Bash(node -e \"require\\('@anthropic-ai/sdk'\\)\")",
+      "WebFetch(domain:github.github.com)"
     ]
   }
 }
