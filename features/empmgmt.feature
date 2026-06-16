@@ -6,7 +6,7 @@ Feature: End to end Emp Management
   Background:
     Given I navigate to the login page
 
-  Scenario: End to End flow
+  Scenario: End to End flow for adding employee
     When I login with valid credentials "testadmin" and "Vibetestq@123#"
     Then I should be redirected to the dashboard page
     When I click on the PIM link
