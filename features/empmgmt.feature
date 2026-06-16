@@ -1,7 +1,7 @@
-Feature: End to end Emp Management
-  As a user of the PIM system
-  I want to authenticate with valid credentials
-  So that I can access the system securely
+Feature: End to End Employee Management
+  As an HR administrator using the PIM module
+  I want to log in and add a new employee with unique details
+  So that the employee record is created and available for further management
 
   Background:
     Given I navigate to the login page
