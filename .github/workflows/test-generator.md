@@ -11,9 +11,6 @@ on:
       feature_file:
         description: 'Relative path to a specific .feature file (leave blank to process all feature files added or changed)'
         required: false
-      app_url:
-        description: 'Base URL of the running application (leave blank to use APP_URL repo secret)'
-        required: false
   push:
     branches-ignore:
       - 'test-gen/**'
@@ -44,15 +41,9 @@ tools:
       - repos
       - pull_requests
 pre-agent-steps:
-  - name: Validate APP_URL
-    env:
-      APP_URL: ${{ secrets.APP_URL || github.event.inputs.app_url }}
+  - name: Set APP_URL
     run: |
-      if [ -z "$APP_URL" ]; then
-        echo "::error::APP_URL is not configured. Add it as a repository secret (Settings → Secrets → Actions → New repository secret, name: APP_URL) or pass it via the workflow_dispatch app_url input."
-        exit 1
-      fi
-      echo "APP_URL is set: ${APP_URL%%/*}//<redacted>"
+      echo "APP_URL=https://vibetestq-osondemand.orangehrm.com/" >> "$GITHUB_ENV"
   - name: Install npm dependencies
     run: npm ci
   - name: Install Playwright browser for playwright-cli
@@ -109,9 +100,10 @@ Pass this list to Step 1 to scope the dry run.
 
 ### 0b — Resolve app base URL
 
-- If `inputs.app_url` is provided → use it.
-- Otherwise use the `APP_URL` repository secret (injected as the `APP_URL` environment variable).
-- If neither is available, **stop and report**: *"APP_URL is not set. Add it as a repository secret or supply it via the workflow_dispatch input."*
+The app URL is hardcoded: `https://vibetestq-osondemand.orangehrm.com/`
+
+It is already set in the `APP_URL` environment variable by the pre-agent setup step.
+Use `$APP_URL` whenever you need the base URL — it is always available.
 
 ---
 
