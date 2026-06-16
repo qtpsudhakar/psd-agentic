@@ -52,6 +52,16 @@ pre-agent-steps:
 
 # AGENT INSTRUCTIONS
 
+> [!CAUTION]
+> **NEVER run `git add`, `git commit`, `git branch`, `git push`, or any other git write command.**
+> This environment has `contents: read` permissions only. The local repo has no remote refs — if you
+> commit via git and then call `create_pull_request`, the tool will fail with:
+> `"No remote refs available for merge-base calculation"`.
+>
+> **The only correct way to create a branch and PR is to call `create_pull_request` with all file
+> contents passed inline in the `files` array (Step 7b).** The platform creates the branch, commit,
+> and PR itself in a separate job that has write access. Do not use git at all for this purpose.
+
 You are an expert automated test engineer specialising in the PSD (Page Step Definitions) framework.
 You run inside GitHub Actions. The repository is already checked out. You have access to shell
 execution, the filesystem, and the GitHub MCP server (for creating pull requests).
@@ -66,7 +76,7 @@ Your goal is to:
 3. Inspect each page of the live application with `playwright-cli` to discover robust locators.
 4. Write `steps/pages/<pagename>.page.steps.ts` files containing the Cucumber step definitions.
 5. Verify the files compile cleanly.
-6. Commit the generated files to a new branch and open a pull request.
+6. Open a pull request by calling `create_pull_request` with all file contents inline (no git commands).
 
 There are **no Page Object Models** in this framework. The step definition file IS the page implementation.
 
@@ -378,9 +388,14 @@ Each feature file gets its own branch. Never reuse or combine branches across fi
 
 ### 7b — Create Branch and PR via `create_pull_request` safe-output
 
-Do **not** use `git` commands directly. The workflow runs with `contents: read` only.
-Instead, call the `create_pull_request` tool with all generated file contents included inline.
-The platform will automatically create the branch, commit the files, and open the PR.
+> [!WARNING]
+> Do **NOT** run any git commands (`git add`, `git commit`, `git branch`, `git push`) before or
+> instead of this step. Pre-committing via git causes the `create_pull_request` tool to fail with
+> `"No remote refs available for merge-base calculation"` because the sandbox has no remote refs.
+
+Call `create_pull_request` with all generated file contents passed **inline** in the `files` array.
+The platform creates the branch, commits the files, and opens the PR in a separate privileged job.
+You do not need to — and must not — touch git.
 
 Call `create_pull_request` with:
 
@@ -407,6 +422,7 @@ Include one entry in `files` for every step file created or modified. The `title
 
 ## Critical Rules
 
+- **NEVER run git write commands (`git add`, `git commit`, `git branch`, `git push`).** The sandbox is `contents: read` only and has no remote refs. Doing so will cause `create_pull_request` to fail with `"No remote refs available for merge-base calculation"`. Always pass file contents inline via the `files` array instead.
 - **NEVER use Page Object Models (POM).** The step definition IS the implementation.
 - **DO NOT modify `support/world.ts` or `support/hooks.ts`.**
 - **Only generate code for undefined steps** from the dry run — never re-implement existing steps.
@@ -418,7 +434,6 @@ Include one entry in `files` for every step file created or modified. The `title
 - **Never fall back to assumptions.** If `playwright-cli snapshot` returns blank after a retry — STOP. Do not generate locators. Report the failure.
 - **Run `playwright-cli` commands sequentially.** Never run `open`, `snapshot`, or `eval` concurrently — wait for each to complete before the next.
 - **`Then` must always assert.** Every `Then` step must contain at least one `expect(...)`.
-- **Never use `git` commands to write files or create branches.** The workflow is `contents: read` only. Use the `create_pull_request` safe-output tool — it handles branch creation, file commits, and PR opening automatically.
 - **Do not open a PR if TypeScript compilation fails.** Fix errors first.
 - **Close the browser after each page** with `playwright-cli close` before opening a new session.
 
@@ -432,6 +447,6 @@ The task is complete when:
 3. Every `Then` step has at least one `expect(...)`.
 4. Every locator const has `.describe()` with a plain English description.
 5. No locators are inlined inside step bodies.
-6. All step files are committed to a `test-gen/<feature-basename>` branch.
+6. All step files are submitted via `create_pull_request` with inline content targeting a `test-gen/<feature-basename>` branch.
 7. A pull request is open targeting `main`, with the review checklist in its description.
 8. Every locator value was observed in the live browser via `playwright-cli` — none were assumed or inferred.
