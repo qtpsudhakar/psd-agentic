@@ -1,12 +1,12 @@
-Feature: End to end Emp Management
-  As a user of the PIM system
-  I want to authenticate with valid credentials
-  So that I can access the system securely
+Feature: End to End Employee Management
+  As an HR administrator using the PIM module
+  I want to log in and add a new employee with unique details
+  So that the employee record is created and available for further management
 
   Background:
     Given I navigate to the login page
 
-  Scenario: End to End flow for adding employee
+  Scenario: End to End flow for adding emp
     When I login with valid credentials "testadmin" and "Vibetestq@123#"
     Then I should be redirected to the dashboard page
     When I click on the PIM link
