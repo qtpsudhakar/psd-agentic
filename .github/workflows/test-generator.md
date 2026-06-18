@@ -299,8 +299,7 @@ Write the implementation in the correct `<pagename>.page.steps.ts` file.
 import { Given, When, Then } from '@cucumber/cucumber';
 // Add DataTable to the import above only when a step in this file uses a DataTable:
 // import { Given, When, Then, DataTable } from '@cucumber/cucumber';
-import { expect } from '@playwright/test';
-import { PSWorld } from '../../support/world';
+import { PSWorld, expect } from '../../support/world';
 
 // ─── Login Page Locators ───────────────────────────────────────────────────
 const usernameInput   = (w: PSWorld) => w.page.getByLabel('Username').describe('Username input field');

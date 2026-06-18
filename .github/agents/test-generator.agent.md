@@ -150,8 +150,7 @@ For each undefined step, write the implementation in the correct `<pagename>.pag
 import { Given, When, Then } from '@cucumber/cucumber';
 // If any step in this file uses a DataTable, add DataTable to the import above:
 // import { Given, When, Then, DataTable } from '@cucumber/cucumber';
-import { expect } from '@playwright/test';
-import { PSWorld } from '../../support/world';
+import { PSWorld,expect } from '../../support/world';
 
 // ─── Login Page Locators ───────────────────────────────────────────────────
 // Define every locator used in this file here as a const arrow function.

@@ -173,8 +173,7 @@ Write each undefined step in the correct `<pagename>.page.steps.ts` file.
 import { Given, When, Then } from '@cucumber/cucumber';
 // Add DataTable to the import above only when a step in this file uses a data table:
 // import { Given, When, Then, DataTable } from '@cucumber/cucumber';
-import { expect } from '@playwright/test';
-import { PSWorld } from '../../support/world';
+import { PSWorld, expect } from '../../support/world';
 
 // ─── <Page Name> Locators ──────────────────────────────────────────────────
 // All locators for this page as const arrow functions.

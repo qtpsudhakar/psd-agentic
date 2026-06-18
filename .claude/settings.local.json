@@ -4,7 +4,9 @@
       "Skill(claude-api)",
       "Skill(claude-api:*)",
       "Bash(node -e \"require\\('@anthropic-ai/sdk'\\)\")",
-      "WebFetch(domain:github.github.com)"
+      "WebFetch(domain:github.github.com)",
+      "PowerShell(Set-Location \"d:\\\\QtpSudhakarOrg\\\\psd-agentic\"; gh aw compile --approve 2>&1; Write-Host \"EXIT:$LASTEXITCODE\")",
+      "PowerShell(Set-Location \"d:\\\\QtpSudhakarOrg\\\\psd-agentic\"; gh aw compile --approve > \"$env:TEMP\\\\aw-compile.txt\" 2>&1; $exit = $LASTEXITCODE; Get-Content \"$env:TEMP\\\\aw-compile.txt\"; Write-Host \"EXIT:$exit\")"
     ]
   }
 }

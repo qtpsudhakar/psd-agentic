@@ -12,7 +12,11 @@ module.exports = {
       'html:cucumber-report.html',
       'json:cucumber-report.json',
       'rerun:reports/rerun.txt',
+      'allure-cucumberjs/reporter',
     ],
+    formatOptions: {
+      resultsDir: 'allure-results',
+    },
     worldParameters: {
       baseUrl: 'https://vibetestq-osondemand.orangehrm.com/',
     },

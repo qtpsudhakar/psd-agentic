@@ -1,0 +1,160 @@
+name: Cucumber Tests & Reports
+
+on:
+  push:
+    branches: [ main, master, sudhakar ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write          # Required to push to gh-pages branch
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: 'npm'
+
+    - name: Setup Java (required by Allure CLI)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browser
+      run: npx playwright install --with-deps chromium
+
+    # ─── Restore previous Allure history for trend charts ────────────────────
+
+    - name: Download previous Allure history
+      uses: actions/checkout@v4
+      continue-on-error: true
+      with:
+        ref: gh-pages
+        path: gh-pages
+
+    # ─── Run tests ───────────────────────────────────────────────────────────
+
+    - name: Run Cucumber tests
+      run: npm test
+      env:
+        CI: true
+        HEADLESS: true
+      continue-on-error: true  # Publish reports even when tests fail
+
+    - name: Copy Allure history from previous run
+      if: always()
+      run: |
+        if [ -d "gh-pages/allure/history" ]; then
+          mkdir -p allure-results/history
+          cp -r gh-pages/allure/history/. allure-results/history/
+          echo "History files copied:"
+          ls allure-results/history/
+        else
+          echo "No previous history found — first run baseline"
+        fi
+
+    # ─── Generate Allure Report ───────────────────────────────────────────────
+
+    - name: Generate Allure HTML report
+      if: always()
+      run: npx allure generate ./allure-results -o ./allure-report --clean
+
+    # ─── Publish to GitHub Pages ──────────────────────────────────────────────
+
+    - name: Prepare gh-pages directory structure
+      if: always()
+      run: |
+        mkdir -p gh-pages-deploy/allure
+        cp -r allure-report/. gh-pages-deploy/allure/
+
+        mkdir -p gh-pages-deploy/cucumber
+        cp cucumber-report.html gh-pages-deploy/cucumber/index.html || true
+
+        cat > gh-pages-deploy/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Test Reports — PSD Framework</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 640px; margin: 80px auto; text-align: center; background: #f5f5f5; }
+            h1 { color: #333; }
+            p.sub { color: #888; font-size: 14px; margin-top: -8px; }
+            .cards { display: flex; gap: 24px; justify-content: center; margin-top: 48px; }
+            a.card { display: block; padding: 36px 48px; border-radius: 10px; text-decoration: none;
+                     font-size: 18px; font-weight: bold; color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+            .allure   { background: #e85a4f; }
+            .cucumber { background: #23d96c; color: #1a4d2e; }
+            a.card:hover { opacity: 0.88; transform: translateY(-2px); transition: all 0.15s; }
+            .label { color: #666; font-size: 13px; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>PSD Framework — Test Reports</h1>
+          <p class="sub">Cucumber · Playwright · BDD</p>
+          <div class="cards">
+            <div>
+              <a class="card allure" href="allure/index.html">Allure Report</a>
+              <p class="label">History &amp; trend charts</p>
+            </div>
+            <div>
+              <a class="card cucumber" href="cucumber/index.html">Cucumber Report</a>
+              <p class="label">Scenarios &amp; step results</p>
+            </div>
+          </div>
+        </body>
+        </html>
+        EOF
+
+    - name: Publish reports to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      if: always()
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: gh-pages-deploy
+        keep_files: true
+        commit_message: |
+          reports: cucumber run ${{ github.run_number }} (${{ github.ref_name }})
+
+    # ─── Upload artifacts as backup ───────────────────────────────────────────
+
+    - name: Upload Cucumber HTML report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cucumber-report-${{ github.run_number }}
+        path: cucumber-report.html
+        retention-days: 30
+
+    - name: Upload Allure results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-results-${{ github.run_number }}
+        path: allure-results/
+        retention-days: 30
+
+    - name: Upload Allure HTML report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: allure-report-${{ github.run_number }}
+        path: allure-report/
+        retention-days: 30

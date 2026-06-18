@@ -1,6 +1,6 @@
 import { Then, When } from '@cucumber/cucumber';
-import { expect } from '@playwright/test';
-import { PSWorld } from '../../support/world';
+// import { expect } from '@playwright/test';
+import { PSWorld,expect } from '../../support/world';
 
 const dashboardHeading = (w: PSWorld) => w.page.getByRole('heading', { name: 'Dashboard' }).describe('Dashboard page heading');
 const pimLink = (w: PSWorld) => w.page.getByRole('link', { name: 'PIM' }).describe('PIM navigation link');
