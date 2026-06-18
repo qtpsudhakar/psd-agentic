@@ -1,1 +1,1 @@
-[{"uid":"5d52a55f4601f722","name":"End to End flow for adding emp","time":{"start":1781807748221,"stop":1781807761112,"duration":12891},"status":"passed","severity":"normal"}]
+[{"uid":"e350e9e631c5a0ef","name":"End to End flow for adding emp","time":{"start":1781808415924,"stop":1781808424381,"duration":8457},"status":"passed","severity":"normal"},{"uid":"aabc17ac2381a0a5","name":"End to End flow for adding emp","time":{"start":1781808424384,"stop":1781808437423,"duration":13039},"status":"passed","severity":"normal"}]
