@@ -2,6 +2,7 @@ Feature: End to End Employee Management in Admin Module
   As an HR administrator using the PIM module
   I want to log in and add a new employee with unique details
   So that the employee record is created and available for further management
+  And verify employee record creation by searching for the newly added employee using the stored employee id
 
   Background:
     Given I navigate to the login page
