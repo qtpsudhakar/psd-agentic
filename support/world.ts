@@ -16,7 +16,11 @@ export class PSWorld extends World {
 
   async initPlaywright(): Promise<void> {
     const b = await getBrowser();
-    this._context = await b.newContext({ baseURL: this.baseUrl });
+    const recordVideo = process.env.RECORD_VIDEO === 'true';
+    this._context = await b.newContext({
+      baseURL: this.baseUrl,
+      ...(recordVideo ? { recordVideo: { dir: 'videos/' } } : {}),
+    });
     this._page = await this._context.newPage();
     // ── Playwright timeouts ──────────────────────────────────
     this.page.setDefaultTimeout(30000);           // action timeout — click, fill, etc.

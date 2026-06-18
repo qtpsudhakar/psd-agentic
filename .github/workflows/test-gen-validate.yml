@@ -1,0 +1,241 @@
+name: Test-Gen PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write        # push to gh-pages branch
+  pull-requests: write   # post PR comment
+
+jobs:
+  validate:
+    name: Run & Publish Validation Report
+    if: startsWith(github.head_ref, 'test-gen/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0   # full history needed for git diff
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: npm
+
+    - name: Setup Java (for Allure CLI)
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browser
+      run: npx playwright install --with-deps chromium
+
+    # ─── Identify which feature files to run ─────────────────────────────────
+    # The test-gen PR adds .steps.ts files; derive the matching .feature files
+    # from the step definition file names (add-employee.page.steps.ts → add-employee.feature)
+
+    - name: Resolve feature files from changed step definitions
+      id: features
+      run: |
+        BASE=${{ github.base_ref }}
+        STEP_FILES=$(git diff --name-only origin/${BASE}...HEAD | grep '\.steps\.ts$' || true)
+        echo "Changed step files: $STEP_FILES"
+
+        FEATURE_FILES=""
+        for sf in $STEP_FILES; do
+          # extract page name: "add-employee.page.steps.ts" → "add-employee"
+          PAGE_NAME=$(basename "$sf" .steps.ts | sed 's/\.page$//')
+          # locate matching feature file anywhere under features/
+          FEATURE=$(find features -type f -name "${PAGE_NAME}.feature" 2>/dev/null | head -1)
+          if [ -z "$FEATURE" ]; then
+            # fuzzy fallback: partial match
+            FEATURE=$(find features -type f -name "*${PAGE_NAME}*.feature" 2>/dev/null | head -1)
+          fi
+          if [ -n "$FEATURE" ]; then
+            echo "  matched: $sf → $FEATURE"
+            FEATURE_FILES="$FEATURE_FILES $FEATURE"
+          else
+            echo "  warning: no feature file found for $sf (page: $PAGE_NAME)"
+          fi
+        done
+
+        # Deduplicate
+        FEATURE_FILES=$(echo "$FEATURE_FILES" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
+        echo "Feature files to test: $FEATURE_FILES"
+        echo "files=$FEATURE_FILES" >> "$GITHUB_OUTPUT"
+        echo "step_files=$STEP_FILES" >> "$GITHUB_OUTPUT"
+
+    # Derive branch suffix early — used in artifact names, Pages paths, and healing trigger.
+    # Branch: test-gen/empmgmt → suffix: empmgmt
+    - name: Compute Pages path from branch name
+      id: pages_path
+      run: |
+        BRANCH="${{ github.head_ref }}"
+        SUFFIX="${BRANCH#test-gen/}"
+        echo "suffix=$SUFFIX" >> "$GITHUB_OUTPUT"
+        echo "Pages path: test-gen/$SUFFIX/"
+
+    # ─── Restore Allure history for trend charts ──────────────────────────────
+
+    - name: Restore Allure history from gh-pages
+      if: always()
+      run: |
+        git fetch origin gh-pages --depth=1 2>/dev/null || true
+        if git ls-tree origin/gh-pages -- allure/history/ 2>/dev/null | grep -q history; then
+          mkdir -p allure-results/history
+          git archive origin/gh-pages -- allure/history/ | tar -x 2>/dev/null || true
+          [ -d allure/history ] && cp -r allure/history/. allure-results/history/ && echo "Allure history restored"
+        else
+          echo "No Allure history on gh-pages — first run baseline"
+        fi
+
+    # ─── Run Cucumber tests ───────────────────────────────────────────────────
+
+    - name: Run Cucumber validation
+      id: cucumber
+      run: |
+        mkdir -p reports
+        FILES="${{ steps.features.outputs.files }}"
+        RESULT="passed"
+        if [ -n "$FILES" ]; then
+          npx cucumber-js $FILES || RESULT="failed"
+        else
+          echo "No matching feature files found — running dry-run instead."
+          npx cucumber-js --dry-run || true
+          RESULT="skipped"
+        fi
+        echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+        echo "Cucumber result: $RESULT"
+      env:
+        HEADLESS: true
+        RECORD_VIDEO: true
+      continue-on-error: true   # always publish reports, even on test failure
+
+    # ─── Upload failure report for the healing workflow ──────────────────────
+    # cucumber-report.json is uploaded separately so heal-steps can download
+    # it by a predictable name without needing the full artifact bundle.
+
+    - name: Upload failure report for self-healing
+      if: steps.cucumber.outputs.result == 'failed'
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-gen-failure-report-${{ steps.pages_path.outputs.suffix }}
+        path: cucumber-report.json
+        retention-days: 7
+
+    # ─── Trigger self-healing agentic workflow on failure ─────────────────────
+
+    - name: Trigger heal-steps workflow
+      if: steps.cucumber.outputs.result == 'failed'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.actions.createWorkflowDispatch({
+            owner:       context.repo.owner,
+            repo:        context.repo.repo,
+            workflow_id: 'heal-steps.lock.yml',
+            ref:         '${{ github.base_ref }}',
+            inputs: {
+              branch:     '${{ github.head_ref }}',
+              run_id:     String(context.runId),
+              pr_number:  String(context.payload.pull_request.number),
+            },
+          });
+          core.info('Self-healing workflow triggered for branch ${{ github.head_ref }}');
+
+    # ─── Generate reports ─────────────────────────────────────────────────────
+
+    - name: Generate Allure HTML report
+      if: always()
+      run: npx allure generate ./allure-results -o ./allure-report --clean
+
+    # ─── Build GitHub Pages deploy structure ──────────────────────────────────
+    # Publishes under /test-gen/pr-{N}/ alongside the main /allure/ root reports
+
+
+    - name: Build gh-pages deploy directory
+      if: always()
+      env:
+        PR_NUM: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        OWNER: ${{ github.repository_owner }}
+        REPO: ${{ github.event.repository.name }}
+        BRANCH_SUFFIX: ${{ steps.pages_path.outputs.suffix }}
+        STEP_DEF_FILES: ${{ steps.features.outputs.step_files }}
+      run: python3 .github/scripts/build-pages.py
+
+    # ─── Publish to GitHub Pages ─────────────────────────────────────────────
+
+    - name: Publish validation report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      if: always()
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: gh-pages-deploy
+        keep_files: true   # preserve root /allure/ and /cucumber/ from main workflow
+        commit_message: "test-gen: ${{ github.head_ref }} validation (PR #${{ github.event.pull_request.number }})"
+
+    # ─── Upload artifacts (videos + full results) ─────────────────────────────
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-gen-${{ steps.pages_path.outputs.suffix }}-run-${{ github.run_number }}
+        path: |
+          cucumber-report.html
+          allure-report/
+          videos/
+        retention-days: 30
+        if-no-files-found: warn
+
+    # ─── Update PR body with live links + mark Ready for Review ─────────────────
+    # Replace the <!-- VALIDATION_PENDING --> placeholder in the PR body with real
+    # report links, then convert the draft PR to ready for review.
+
+    - name: Update PR body and mark ready for review
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        script: |
+          const prNum  = context.payload.pull_request.number;
+          const owner  = context.repo.owner;
+          const repo   = context.repo.repo;
+          const suffix = '${{ steps.pages_path.outputs.suffix }}';
+          const pages  = `https://${owner}.github.io/${repo}/test-gen/${suffix}`;
+          const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+          const reportSection = [
+            `| Report | Link |`,
+            `|--------|------|`,
+            `| 📊 Allure Report | [View →](${pages}/allure/index.html) |`,
+            `| 🥒 Cucumber Report | [View →](${pages}/cucumber/index.html) |`,
+            `| 📄 Step Definitions | [View →](${pages}/steps/) |`,
+            `| 🏠 Landing Page | [View →](${pages}/) |`,
+            ``,
+            `> Videos are in [workflow artifacts](${runUrl}) (30-day retention).`,
+          ].join('\n');
+
+          // Replace the pending placeholder in the PR body with live links
+          const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNum });
+          const updatedBody = pr.body.replace(
+            /<!-- VALIDATION_PENDING -->[\s\S]*?<!-- \/VALIDATION_PENDING -->/,
+            `<!-- VALIDATION_PENDING -->\n${reportSection}\n<!-- /VALIDATION_PENDING -->`
+          );
+          await github.rest.pulls.update({
+            owner, repo, pull_number: prNum,
+            body: updatedBody,
+            draft: false,   // mark Ready for Review now that reports are live
+          });
+          core.info(`PR #${prNum} updated with report links and marked ready for review.`);
