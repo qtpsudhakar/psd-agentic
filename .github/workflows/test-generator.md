@@ -387,17 +387,27 @@ Each feature file gets its own branch. Never reuse or combine branches across fi
 
 ### 7b — Create Branch and PR via `create_pull_request` safe-output
 
-> [!WARNING]
-> Do **NOT** run any git commands (`git add`, `git commit`, `git branch`, `git push`) before or
-> instead of this step. Pre-committing via git causes the `create_pull_request` tool to fail with
-> `"No remote refs available for merge-base calculation"` because the sandbox has no remote refs.
+> [!CAUTION]
+> **NEVER run any git command before this step.** `git add`, `git commit`, `git branch`, `git push`
+> will ALL cause `create_pull_request` to fail with `"No remote refs available"` or
+> `"No commits available"`. The tool does **not** read from the git working tree.
+> It reads exclusively from the `files` array you provide inline.
 
-Call `create_pull_request` with all generated file contents passed **inline** in the `files` array.
-The platform creates the branch, commits the files, and opens the PR in a separate privileged job.
-You do not need to — and must not — touch git.
+**Before calling `create_pull_request`, complete this checklist in order:**
 
-Call `create_pull_request` with **`"draft": true`** so the PR cannot be merged until the
-`test-gen-validate` workflow finishes, publishes the reports, and converts it to ready for review.
+1. **Read each file you created** using `cat`:
+   ```bash
+   cat steps/pages/<pagename>.page.steps.ts
+   ```
+2. **Copy the full output** of each `cat` command into the corresponding entry in the `files` array below.
+3. Confirm the `files` array has one entry per `.steps.ts` file you wrote.
+4. Confirm `"draft": true` is set.
+5. Confirm you have NOT run any `git` command.
+
+Only after completing all 5 checks, call `create_pull_request`.
+
+The platform creates the branch, commits the files from the `files` array, and opens the PR in a
+separate privileged job. You do not need to — and must not — touch git.
 
 ```json
 {
@@ -429,7 +439,7 @@ Include one entry in `files` for every step file created or modified. The `title
 
 ## Critical Rules
 
-- **NEVER run git write commands (`git add`, `git commit`, `git branch`, `git push`).** The sandbox is `contents: read` only and has no remote refs. Doing so will cause `create_pull_request` to fail with `"No remote refs available for merge-base calculation"`. Always pass file contents inline via the `files` array instead.
+- **NEVER run git write commands (`git add`, `git commit`, `git branch`, `git push`).** The sandbox is `contents: read` only and has no remote refs. These commands cause `create_pull_request` to fail. The tool does NOT read from the git working tree — it reads only from the `files` array. You must `cat` each file you wrote and paste the full content into `files` before calling `create_pull_request`.
 - **NEVER use Page Object Models (POM).** The step definition IS the implementation.
 - **DO NOT modify `support/world.ts` or `support/hooks.ts`.**
 - **Only generate code for undefined steps** from the dry run — never re-implement existing steps.
