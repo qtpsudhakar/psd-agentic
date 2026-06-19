@@ -8,3 +8,6 @@ playwright-report/
 REPORTS/
 cucumber-report.html
 cucumber-report.json
+allure-report/
+allure-results/
+cucumber-report/
