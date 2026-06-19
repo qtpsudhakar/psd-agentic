@@ -89,7 +89,7 @@ There are **no Page Object Models** in this framework. The step definition file 
 **Repeat Steps 1–7 for each feature file that has undefined steps, creating a separate branch and PR per file.**
 
 **If triggered by `workflow_dispatch`:**
-Do not pre-collect feature files here. Step 1 will run `npx cucumber-js --dry-run` globally and
+Do not pre-collect feature files here. Step 1 will run `npx cucumber-js -p dry-run` globally and
 derive the exact list of files with undefined steps from its output. Proceed to Step 0b.
 
 If `inputs.feature_file` is set, pass it to Step 1 as context (the global dry run will still run,

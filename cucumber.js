@@ -27,9 +27,8 @@ module.exports = {
     publish: false,
     failFast: false,
     dryRun: false,
-    strict: true,
+    strict: false,
     timeout: 120000,
     defaultTimeout: 120000,
-    failOnUndefined: false,
   }
 };
