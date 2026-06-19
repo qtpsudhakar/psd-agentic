@@ -1,0 +1,8 @@
+DOM Snapshot at failure:
+
+- body "502 Bad Gateway
+nginx"
+  - center "502 Bad Gateway"
+    - h1 "502 Bad Gateway"
+  - hr
+  - center "nginx"

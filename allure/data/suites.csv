@@ -2,7 +2,7 @@
 "As an HR administrator using the PIM module
   I want to log in and add a new employee with unique details
   So that the employee record is created and available for further management
-  And verify employee record creation by searching for the newly added employee using the stored employee id","7459","End to End flow for adding emp","","2026-06-18","passed","2026-06-18","","","",""
+  And verify employee record creation by searching for the newly added employee using the stored employee id","12862","End to End flow for adding emp","","2026-06-19","passed","2026-06-19","","","",""
 "As an HR administrator using the PIM module
   I want to log in and add a new employee with unique details
-  So that the employee record is created and available for further management","11871","End to End flow for adding emp","","2026-06-18","passed","2026-06-18","","","",""
+  So that the employee record is created and available for further management","15477","End to End flow for adding emp","","2026-06-19","failed","2026-06-19","","","",""

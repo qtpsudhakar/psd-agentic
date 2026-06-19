@@ -1,0 +1,18 @@
+DOM Snapshot at failure:
+
+- body ":root {
+            --oxd-primary-one-color:#FF7B1D;
+       "
+  - style ":root {
+            --oxd-primary-one-color:#FF7B1D;
+       "
+  - noscript "<strong>
+            We're sorry but orangehrm doesn't work "
+  - div
+    - auth-login
+      - template
+  - script "window.appGlobal = {
+          baseUrl: "",
+          public"
+  - script
+  - script
