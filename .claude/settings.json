@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(Set-Location \"d:\\\\QtpSudhakarOrg\\\\psd-agentic\"; gh aw compile --approve > \"$env:TEMP\\\\aw-compile.txt\" 2>&1; $exit = $LASTEXITCODE; Get-Content \"$env:TEMP\\\\aw-compile.txt\"; Write-Host \"EXIT:$exit\")",
-      "PowerShell(Set-Location \"d:\\\\QtpSudhakarOrg\\\\psd-agentic\"; gh aw compile --approve > \"$env:TEMP\\\\aw-compile2.txt\" 2>&1; $exit = $LASTEXITCODE; Get-Content \"$env:TEMP\\\\aw-compile2.txt\"; Write-Host \"EXIT:$exit\")"
+      "PowerShell(Set-Location \"d:\\\\QtpSudhakarOrg\\\\psd-agentic\"; gh aw compile --approve > \"$env:TEMP\\\\aw-compile2.txt\" 2>&1; $exit = $LASTEXITCODE; Get-Content \"$env:TEMP\\\\aw-compile2.txt\"; Write-Host \"EXIT:$exit\")",
+      "Bash(gh issue *)"
     ]
   }
 }

@@ -1,3 +1,5 @@
+const isDryRun = process.argv.includes('--dry-run');
+
 module.exports = {
   default: {
     paths: ['features/**/*.feature'],
@@ -12,7 +14,7 @@ module.exports = {
       'html:cucumber-report.html',
       'json:cucumber-report.json',
       'rerun:reports/rerun.txt',
-      'allure-cucumberjs/reporter',
+      ...(isDryRun ? [] : ['allure-cucumberjs/reporter']),
     ],
     formatOptions: {
       resultsDir: 'allure-results',
@@ -30,5 +32,6 @@ module.exports = {
     strict: false,
     timeout: 120000,
     defaultTimeout: 120000,
+    failOnUndefined: false,
   }
 };
