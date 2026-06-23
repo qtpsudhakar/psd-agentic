@@ -1,5 +1,225 @@
 [
   {
+    "description": "  As an HR administrator using the PIM module\n  I want to log in and add a new employee with unique details\n  So that the employee record is created and available for further management\n  And verify employee record creation by searching for the newly added employee using the stored employee id",
+    "elements": [
+      {
+        "description": "",
+        "id": "end-to-end-employee-management-in-admin-module;end-to-end-flow-for-adding-emp",
+        "keyword": "Scenario",
+        "line": 10,
+        "name": "End to End flow for adding emp",
+        "steps": [
+          {
+            "keyword": "Before",
+            "hidden": true,
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Given ",
+            "line": 8,
+            "name": "I navigate to the login page",
+            "match": {
+              "location": "steps\\pages\\login.page.steps.ts:10"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 11,
+            "name": "I login with valid credentials \"testadmin\" and \"Vibetestq@123#\"",
+            "match": {
+              "location": "steps\\pages\\login.page.steps.ts:15"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 12,
+            "name": "I should be redirected to the dashboard page",
+            "match": {
+              "location": "steps\\pages\\dashboard.page.steps.ts:8"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 13,
+            "name": "I click on the PIM link",
+            "match": {
+              "location": "steps\\pages\\dashboard.page.steps.ts:12"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 14,
+            "name": "I should see the PIM module",
+            "match": {
+              "location": "steps\\pages\\pim.page.steps.ts:11"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 15,
+            "name": "I click on add button",
+            "match": {
+              "location": "steps\\pages\\pim.page.steps.ts:15"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 16,
+            "name": "I should see the add employee form",
+            "match": {
+              "location": "steps\\pages\\add-employee.page.steps.ts:12"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "And ",
+            "line": 17,
+            "name": "I read the employee id from the employee id textbox and store it in a variable",
+            "match": {
+              "location": "steps\\pages\\add-employee.page.steps.ts:16"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 18,
+            "name": "I add a new employee with unique details",
+            "match": {
+              "location": "steps\\pages\\add-employee.page.steps.ts:21"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 19,
+            "name": "I see the personal details page",
+            "match": {
+              "location": "steps\\pages\\personal-details.page.steps.ts:7"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 20,
+            "name": "I click on the PIM link",
+            "match": {
+              "location": "steps\\pages\\dashboard.page.steps.ts:12"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 21,
+            "name": "I should see the PIM module",
+            "match": {
+              "location": "steps\\pages\\pim.page.steps.ts:11"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "When ",
+            "line": 22,
+            "name": "I search for the newly added employee using the stored employee id",
+            "match": {
+              "location": "steps\\pages\\pim.page.steps.ts:19"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "arguments": [],
+            "keyword": "Then ",
+            "line": 23,
+            "name": "I should see the employee record created in the search results",
+            "match": {
+              "location": "steps\\pages\\pim.page.steps.ts:25"
+            },
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          },
+          {
+            "keyword": "After",
+            "hidden": true,
+            "result": {
+              "status": "skipped",
+              "duration": 0
+            }
+          }
+        ],
+        "tags": [],
+        "type": "scenario"
+      }
+    ],
+    "id": "end-to-end-employee-management-in-admin-module",
+    "line": 1,
+    "keyword": "Feature",
+    "name": "End to End Employee Management in Admin Module",
+    "tags": [],
+    "uri": "features\\empadmin.feature"
+  },
+  {
     "description": "  As an HR administrator using the PIM module\n  I want to log in and add a new employee with unique details\n  So that the employee record is created and available for further management",
     "elements": [
       {
@@ -75,7 +295,7 @@
             "line": 13,
             "name": "I should see the PIM module",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:8"
+              "location": "steps\\pages\\pim.page.steps.ts:11"
             },
             "result": {
               "status": "skipped",
@@ -88,7 +308,7 @@
             "line": 14,
             "name": "I click on add button",
             "match": {
-              "location": "steps\\pages\\pim.page.steps.ts:12"
+              "location": "steps\\pages\\pim.page.steps.ts:15"
             },
             "result": {
               "status": "skipped",
@@ -101,7 +321,7 @@
             "line": 15,
             "name": "I should see the add employee form",
             "match": {
-              "location": "steps\\pages\\add-employee.page.steps.ts:11"
+              "location": "steps\\pages\\add-employee.page.steps.ts:12"
             },
             "result": {
               "status": "skipped",
@@ -114,7 +334,7 @@
             "line": 16,
             "name": "I add a new employee with unique details",
             "match": {
-              "location": "steps\\pages\\add-employee.page.steps.ts:15"
+              "location": "steps\\pages\\add-employee.page.steps.ts:21"
             },
             "result": {
               "status": "skipped",

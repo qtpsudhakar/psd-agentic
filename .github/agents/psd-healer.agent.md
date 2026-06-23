@@ -1,5 +1,5 @@
 ---
-name: Test Healer
+name: PSD Healer
 description: Runs a Cucumber feature file, reads the JSON report to identify failed steps, navigates the live app with Playwright MCP to find correct locators, fixes the step definition code, and re-runs to verify the fix. Use when tests are failing and need automated diagnosis and repair.
 tools: vscode, execute, read, agent, edit, search, web, 'filesystem/*', 'playwright/*', browser, todo
 mcp:
