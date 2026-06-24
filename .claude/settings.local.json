@@ -4,7 +4,12 @@
       "Skill(claude-api)",
       "Skill(claude-api:*)",
       "Bash(node -e \"require\\('@anthropic-ai/sdk'\\)\")",
-      "WebFetch(domain:github.github.com)"
+      "WebFetch(domain:github.github.com)",
+      "Bash(playwright-cli open *)",
+      "Bash(playwright-cli run-code 'async \\(page\\) => { *)",
+      "Edit(/.claude/skills/playwright-cli/**)",
+      "Bash(playwright-cli fill *)",
+      "Bash(playwright-cli click *)"
     ]
   }
 }
