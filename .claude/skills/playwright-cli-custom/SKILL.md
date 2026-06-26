@@ -249,6 +249,8 @@ playwright-cli --% goto "https://example.com/?a=1&b=2"
 
 ## Snapshots
 
+> **Prefer the filtered scoped snapshot in the "Finding Elements" section above.** Use `playwright-cli snapshot` only when you need a broad orientation after navigation or as a last resort — never as the first step for locating a specific element.
+
 After each command, playwright-cli provides a snapshot of the current browser state.
 
 ```bash
@@ -280,19 +282,81 @@ playwright-cli snapshot e34
 playwright-cli snapshot --boxes
 ```
 
-## Targeting elements
+## Finding Elements — Filtered Snapshot (use this every time)
 
-By default, use refs from the snapshot to interact with page elements.
+NEVER start with a full page snapshot when looking for an element. Always use the two-step scoped approach below.
+
+### Step 1 — Multi-strategy scoped snapshot (always start here)
+
+Think of all synonyms for the label that might appear on the page. Then run the multi-strategy finder — it tries four locator patterns in order and returns the first that resolves:
 
 ```bash
-# get snapshot with refs
-playwright-cli snapshot
-
-# interact using a ref
-playwright-cli click e15
+playwright-cli run-code "async (page) => {
+  await page.waitForLoadState('networkidle');
+  const synonyms = [<your terms here>];
+  const regex = new RegExp(synonyms.join('|'), 'i');
+  const strategies = [
+    // label text is 1 level above the input (most common)
+    () => page.getByText(regex).first().locator('..').locator('+ *').ariaSnapshot({ mode: 'ai' }),
+    // label text is 2 levels above the input
+    () => page.getByText(regex).first().locator('../..').locator('+ *').ariaSnapshot({ mode: 'ai' }),
+    // input has a matching placeholder
+    () => page.getByPlaceholder(regex).first().ariaSnapshot({ mode: 'ai' }),
+    // input has a matching accessible name (role=textbox, button, etc.)
+    () => page.getByRole('textbox', { name: regex }).first().ariaSnapshot({ mode: 'ai' }),
+  ];
+  for (const s of strategies) {
+    try { const r = await s(); if (r) return r; } catch {}
+  }
+  return null;
+}"
 ```
 
-You can also use css selectors or Playwright locators.
+If a ref is returned — use it directly. You are done.
+
+```yaml
+- textbox "Type for hints..." [ref=e5]   ← use this ref
+```
+
+### Step 1b — Section snapshot (when you need multiple fields at once)
+
+When you need all inputs in a form section (e.g. a name group, address block), snapshot the section container element instead of searching field by field. First get a shallow full-page snapshot to identify the container ref, then snapshot just that element:
+
+```bash
+# get a shallow map to find the container ref
+playwright-cli run-code "async (page) => { return await page.ariaSnapshot({ mode: 'ai', depth: 4 }); }"
+# snapshot the container — returns all its inputs with refs in one call
+playwright-cli snapshot <container-ref>
+```
+
+This returns all child inputs and their refs in a single, compact snapshot.
+
+### Step 2 — Full page snapshot (fallback only)
+
+Only use this if Step 1 returns `null` or throws for all strategies:
+
+```bash
+playwright-cli run-code "async (page) => {
+  await page.waitForLoadState('networkidle');
+  return await page.ariaSnapshot({ mode: 'ai', depth: 4 });
+}"
+```
+
+Read the full snapshot to identify the correct label text as it actually appears on the page, then go back to Step 1 with the corrected terms.
+
+### Interacting with a ref
+
+```bash
+playwright-cli fill e5 "John Smith"
+playwright-cli click e9
+playwright-cli check e12
+```
+
+> Refs are only valid for the current page state — re-run the snapshot after any navigation.
+
+## Targeting elements
+
+You can also use css selectors or Playwright locators when you already know the selector.
 
 ```bash
 # css selector
@@ -341,12 +405,45 @@ npm install -g @playwright/cli@latest
 
 ```bash
 playwright-cli open https://example.com/form
-playwright-cli snapshot
+
+# Step 1 — multi-strategy scoped snapshot for the username field
+playwright-cli run-code "async (page) => {
+  const synonyms = ['Username', 'Email', 'User'];
+  const regex = new RegExp(synonyms.join('|'), 'i');
+  const strategies = [
+    () => page.getByText(regex).first().locator('..').locator('+ *').ariaSnapshot({ mode: 'ai' }),
+    () => page.getByText(regex).first().locator('../..').locator('+ *').ariaSnapshot({ mode: 'ai' }),
+    () => page.getByPlaceholder(regex).first().ariaSnapshot({ mode: 'ai' }),
+    () => page.getByRole('textbox', { name: regex }).first().ariaSnapshot({ mode: 'ai' }),
+  ];
+  for (const s of strategies) {
+    try { const r = await s(); if (r) return r; } catch {}
+  }
+  return null;
+}"
+# → textbox "Username" [ref=e1]
 
 playwright-cli fill e1 "user@example.com"
+
+# Step 1 — same for password
+playwright-cli run-code "async (page) => {
+  const synonyms = ['Password'];
+  const regex = new RegExp(synonyms.join('|'), 'i');
+  const strategies = [
+    () => page.getByText(regex).first().locator('..').locator('+ *').ariaSnapshot({ mode: 'ai' }),
+    () => page.getByText(regex).first().locator('../..').locator('+ *').ariaSnapshot({ mode: 'ai' }),
+    () => page.getByPlaceholder(regex).first().ariaSnapshot({ mode: 'ai' }),
+    () => page.getByRole('textbox', { name: regex }).first().ariaSnapshot({ mode: 'ai' }),
+  ];
+  for (const s of strategies) {
+    try { const r = await s(); if (r) return r; } catch {}
+  }
+  return null;
+}"
+# → textbox "Password" [ref=e2]
+
 playwright-cli fill e2 "password123"
-playwright-cli click e3
-playwright-cli snapshot
+playwright-cli click "getByRole('button', { name: 'Login' })"
 playwright-cli close
 ```
 
