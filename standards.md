@@ -357,7 +357,7 @@ module.exports = {
   default: {
     paths: ['features/**/*.feature'],
     require: ['support/world.ts', 'support/hooks.ts', 'steps/**/*.steps.ts'],
-    requireModule: ['ts-node/register'],
+    requireModule: ['tsx/cjs'],
     format: ['pretty', 'html:cucumber-report.html', 'json:cucumber-report.json', 'rerun:reports/rerun.txt'],
     worldParameters: {
       baseUrl: 'https://your-app.example.com/',

@@ -289,14 +289,14 @@ export class TestGeneratorAgent {
 }
 
 // ── Entry point ──────────────────────────────────────────────────────────────
-// Usage: npx ts-node agents/test-generator.agent.ts <feature-file> <url>
-// Example: npx ts-node agents/test-generator.agent.ts features/empmgmt.feature https://app.example.com/
+// Usage: npx tsx agents/test-generator.agent.ts <feature-file> <url>
+// Example: npx tsx agents/test-generator.agent.ts features/empmgmt.feature https://app.example.com/
 async function main() {
     const [,, featurePath, url] = process.argv;
 
     if (!featurePath || !url) {
-        console.error('Usage: npx ts-node agents/test-generator.agent.ts <feature-file> <url>');
-        console.error('Example: npx ts-node agents/test-generator.agent.ts features/empmgmt.feature https://app.example.com/');
+        console.error('Usage: npx tsx agents/test-generator.agent.ts <feature-file> <url>');
+        console.error('Example: npx tsx agents/test-generator.agent.ts features/empmgmt.feature https://app.example.com/');
         process.exit(1);
     }
 

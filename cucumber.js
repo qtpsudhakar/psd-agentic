@@ -6,7 +6,7 @@ module.exports = {
       'support/hooks.ts',
       'steps/**/*.steps.ts',
     ],
-    requireModule: ['ts-node/register'],
+    requireModule: ['tsx/cjs'],
     format: [
       'pretty',
       'html:cucumber-report.html',

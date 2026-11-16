@@ -8,15 +8,17 @@
     "test:headed": "cross-env HEADLESS=false npm run test:cucumber",
     "test:headless": "cross-env HEADLESS=true npm run test:cucumber",
     "explore": "node ./node_modules/@playwright/mcp/explore.js",
-    "playwright:install": "playwright install"
+    "playwright:install": "playwright install",
+    "generate:steps": "tsx agents/test-generator.agent.ts",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^13.0.0",
     "@types/node": "^25.9.3",
     "cross-env": "^7.0.3",
     "playwright": "*",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
