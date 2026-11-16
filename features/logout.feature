@@ -1,3 +1,4 @@
+@logout
 Feature: User Logout
   As a logged in user
   I want to log out of the application
