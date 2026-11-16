@@ -18,7 +18,7 @@ on:
       - 'features/**/*.feature'
 engine:
   id: copilot
-  model: gpt-5-mini
+  model: claude-sonnet-4.6
 permissions:
   contents: read
   pull-requests: read
