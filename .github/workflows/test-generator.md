@@ -18,7 +18,7 @@ on:
       - 'features/**/*.feature'
 engine:
   id: copilot
-  model: claude-sonnet-4.6
+  model: claude-haiku-4.5
 permissions:
   contents: read
   pull-requests: read
