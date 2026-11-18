@@ -50,7 +50,11 @@ psd-agentic/
 │
 ├── support/
 │   ├── world.ts                     # PSWorld — shared Playwright browser/page context
-│   └── hooks.ts                     # Before/After hooks for browser lifecycle
+│   ├── hooks.ts                     # Before/After hooks for browser lifecycle
+│   └── step-healer.ts               # Cucumber step healer (STEP_HEAL=true) and {{run}} test data
+│
+├── heal/
+│   └── orchestrator.ts              # heal monitor: npm run test:heal (verifies fixes, raises defects)
 │
 ├── .github/
 │   ├── agents/                      # VS Code agent definitions (.agent.md)
@@ -58,6 +62,9 @@ psd-agentic/
 │   └── skills/                      # Reusable prompt skills for agents
 │
 ├── docs/                            # Human-readable framework guides
+├── test-reports/                    # verification / execution reports added to PRs by the agentic workflows
+├── reports/                         # run output: rerun.txt, heal-run/<run>/ (git-ignored)
+├── heal-history/                    # heal trend history, dashboard and verified fix cache (git-ignored)
 ├── cucumber.js                      # Cucumber runner configuration
 ├── tsconfig.json
 └── package.json
@@ -67,6 +74,7 @@ psd-agentic/
 - Never add folders outside this structure without updating this document.
 - Never place step files directly under `steps/` — they must live under `steps/pages/`.
 - Never create a `helpers/`, `utils/`, or `lib/` folder to hold page interaction logic.
+- `support/step-healer.ts` and `heal/` are framework infrastructure for healing runs (see README). They never hold page interaction logic, and agents never modify them.
 
 ---
 

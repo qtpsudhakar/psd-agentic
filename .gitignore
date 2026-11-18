@@ -12,3 +12,6 @@ allure-report/
 allure-results/
 cucumber-report/
 .playwright-cli/
+# heal runs (reports/heal-run) and the local heal history/dashboard
+reports/
+heal-history/

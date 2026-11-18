@@ -1,0 +1,108 @@
+# PSD heal run: the suite runs with the Cucumber step healer on (Run A) while the heal monitor works in
+# parallel (heal/orchestrator.ts):
+#   healed step      → clean re-run of that scenario with the fix → verified fixes go into one pull request
+#   application      → clean re-run to confirm → GitHub issue (app-defect / needs-triage), de-duplicated
+#   manual review    → listed in the summary
+#   environment down → one environment issue, healing stopped
+# The trend history (heal-history/) is kept between runs in the Actions cache.
+#
+# Required repository setup:
+#   Secret  COPILOT_GITHUB_TOKEN  fine-grained personal access token with the "Copilot Requests" permission
+#   Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests"
+
+name: PSD heal run
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Cucumber tag expression (optional), e.g. @smoke'
+        required: false
+        default: ''
+
+permissions:
+  contents: write        # push the branch with verified fixes
+  pull-requests: write   # open the pull request
+  issues: write          # raise application defects
+
+concurrency:
+  group: psd-heal-run
+  cancel-in-progress: false
+
+jobs:
+  heal-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HEADLESS: 'true'
+      RUN_ID: ${{ github.run_id }}
+      STEP_HEAL_MODEL: claude-haiku-4.5
+      STEP_HEAL_ISSUES: 'true'
+      STEP_HEAL_PR: 'true'
+      STEP_HEAL_PARALLEL: '2'
+      COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Install GitHub Copilot CLI
+        run: npm install -g @github/copilot@1.0.95
+
+      - name: Restore heal history
+        uses: actions/cache/restore@v4
+        with:
+          path: heal-history
+          key: psd-heal-history-${{ github.run_id }}
+          restore-keys: psd-heal-history-
+
+      - name: Configure git for the fix branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run suite with healing and the heal monitor
+        id: run
+        continue-on-error: true   # still save history and reports when scenarios fail
+        run: |
+          if [ -n "${{ inputs.tags }}" ]; then
+            npm run test:heal -- --tags "${{ inputs.tags }}"
+          else
+            npm run test:heal
+          fi
+
+      - name: Save heal history
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: heal-history
+          key: psd-heal-history-${{ github.run_id }}
+
+      - name: Upload reports, evidence and dashboard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psd-step-heal-report
+          path: |
+            reports/
+            heal-history/
+          if-no-files-found: ignore
+
+      - name: Fail the job if scenarios failed in Run A
+        if: steps.run.outcome == 'failure'
+        run: |
+          echo "::error::Some scenarios failed in Run A — see the job summary for fixes, defects and manual reviews"
+          exit 1

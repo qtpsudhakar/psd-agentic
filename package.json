@@ -7,12 +7,17 @@
     "test:cucumber": "cucumber-js",
     "test:headed": "cross-env HEADLESS=false npm run test:cucumber",
     "test:headless": "cross-env HEADLESS=true npm run test:cucumber",
+    "test:heal": "ts-node --transpile-only heal/orchestrator.ts",
+    "test:allure": "cucumber-js",
+    "allure:report": "npx allure generate allure-results --clean -o allure-report",
     "explore": "node ./node_modules/@playwright/mcp/explore.js",
     "playwright:install": "playwright install"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^13.0.0",
     "@types/node": "^25.9.3",
+    "allure-commandline": "^2.43.0",
+    "allure-cucumberjs": "^3.10.2",
     "cross-env": "^7.0.3",
     "playwright": "*",
     "ts-node": "^10.9.2",

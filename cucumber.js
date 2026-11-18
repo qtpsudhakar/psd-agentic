@@ -4,6 +4,7 @@ module.exports = {
     require: [
       'support/world.ts',
       'support/hooks.ts',
+      'support/step-healer.ts', // Cucumber step healer (off unless STEP_HEAL=true) + {{run}} test data
       'steps/**/*.steps.ts',
     ],
     requireModule: ['ts-node/register'],
@@ -12,6 +13,7 @@ module.exports = {
       'html:cucumber-report.html',
       'json:cucumber-report.json',
       'rerun:reports/rerun.txt',
+      'allure-cucumberjs/reporter',
     ],
     worldParameters: {
       baseUrl: 'https://vibetestq-osondemand.orangehrm.com/',
@@ -29,3 +31,8 @@ module.exports = {
     failOnUndefined: false,
   }
 };
+
+// Run only the feature files / scenarios named on the command line, e.g.
+//   npx cucumber-js --profile files features/empmgmt.feature:9
+// (with the default profile, Cucumber adds named files to `paths` and still runs everything)
+module.exports.files = { ...module.exports.default, paths: [] };

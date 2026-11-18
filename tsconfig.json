@@ -12,5 +12,5 @@
       "node"
     ],
   },
-  "include": ["steps/**/*.ts", "support/**/*.ts", "features/**/*.ts"]
+  "include": ["steps/**/*.ts", "support/**/*.ts", "features/**/*.ts", "heal/**/*.ts"]
 }

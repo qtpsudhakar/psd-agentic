@@ -18,7 +18,7 @@ on:
       - 'features/**/*.feature'
 engine:
   id: copilot
-  model: gpt-5-mini
+  model: claude-haiku-4.5
 permissions:
   contents: read
   pull-requests: read
@@ -48,6 +48,19 @@ pre-agent-steps:
     run: npm ci
   - name: Install Playwright browser for playwright-cli
     run: npx playwright-cli install-browser
+  - name: Install Playwright Chromium for running the feature files
+    run: npx playwright install --with-deps chromium
+post-steps:
+  - name: Upload full Cucumber report
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: psd-cucumber-report
+      path: |
+        cucumber-report.json
+        cucumber-report.html
+        test-reports/
+      if-no-files-found: ignore
 ---
 
 # AGENT INSTRUCTIONS
@@ -59,7 +72,7 @@ pre-agent-steps:
 > `"No remote refs available for merge-base calculation"`.
 >
 > **The only correct way to create a branch and PR is to call `create_pull_request` with all file
-> contents passed inline in the `files` array (Step 7b).** The platform creates the branch, commit,
+> contents passed inline in the `files` array (Step 8b).** The platform creates the branch, commit,
 > and PR itself in a separate job that has write access. Do not use git at all for this purpose.
 
 You are an expert automated test engineer specialising in the PSD (Page Step Definitions) framework.
@@ -86,7 +99,7 @@ There are **no Page Object Models** in this framework. The step definition file 
 
 ### 0a — Identify feature files to process
 
-**Repeat Steps 1–7 for each feature file that has undefined steps, creating a separate branch and PR per file.**
+**Repeat Steps 1–8 for each feature file that has undefined steps, creating a separate branch and PR per file.**
 
 **If triggered by `workflow_dispatch`:**
 Do not pre-collect feature files here. Step 1 will run `npx cucumber-js --dry-run` globally and
@@ -131,7 +144,7 @@ This scans every feature file at once and reports all undefined steps across the
 **If triggered by a `push` event:**
 Run the dry run scoped to each changed feature file identified in Step 0a:
 ```bash
-npx cucumber-js --dry-run <feature-file>
+npx cucumber-js --profile files --dry-run <feature-file>
 ```
 
 ### 1b — Parse the dry run output
@@ -375,9 +388,75 @@ Fix any TypeScript errors before proceeding. Do not create a PR if compilation f
 
 ---
 
-## Step 7 — Create Branch and Pull Request
+## Step 7 — Execute the Feature File and Write the Verification Report
 
-### 7a — Determine Branch Name
+Generated steps are only "verified" once the feature file actually passes against the live app.
+
+### 7a — Run the feature file
+
+Run each feature file you processed, headless, one at a time. Always add `--profile files` when you name
+feature files — with the default profile Cucumber also runs every other feature file:
+```bash
+HEADLESS=true npx cucumber-js --profile files <feature-file>
+```
+This writes `cucumber-report.html` and `cucumber-report.json` (overwritten on every run).
+
+### 7b — If a scenario fails, fix and re-run (max 3 runs)
+
+1. Read `cucumber-report.json` and find each failed step and its error message.
+2. Classify it: locator wrong, assertion value wrong, navigation wrong, or timing.
+3. Re-inspect that page with `playwright-cli` (Step 3) and correct **only the step code you generated in
+   this run** — never feature files, `support/*`, or step definitions that existed before.
+4. Re-run Step 6 and Step 7a.
+
+Stop after **3 runs** in total. Do not add sleeps or `waitForTimeout`; wait on a visible element or value instead.
+
+### 7c — Keep the final run's results
+
+```bash
+mkdir -p test-reports
+cp cucumber-report.json test-reports/<feature-basename>.json
+cp cucumber-report.html test-reports/<feature-basename>.html
+```
+The post-step uploads them as the `psd-cucumber-report` artifact.
+
+### 7d — Write the markdown verification report
+
+Create `test-reports/<feature-basename>.md` from the **final** `cucumber-report.json`. It goes into the pull
+request (the HTML/JSON are too large; they stay in the run artifact):
+
+```markdown
+# Verification report — <feature-file-path>
+
+| | |
+|---|---|
+| Result | ✅ PASSED / ❌ FAILED |
+| Command | `HEADLESS=true npx cucumber-js --profile files <feature-file-path>` |
+| App | <APP_URL> |
+| Date (UTC) | <yyyy-mm-dd hh:mm> |
+| Attempts | <n> of 3 |
+| Scenarios | <passed> passed, <failed> failed |
+| Steps | <passed> passed, <failed> failed, <skipped> skipped |
+| Full HTML report | <run URL> → artifact `psd-cucumber-report` |
+
+## Scenarios
+### ✅ <scenario name>
+| Step | Result | Duration |
+|---|---|---|
+| Given I navigate to the login page | ✅ passed | 2.1 s |
+
+## Failures
+<for each failed step: scenario, step text, and the first lines of the error — or "None">
+```
+
+Get the run URL from `$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID`. Durations in the
+JSON are nanoseconds. Never put credentials in the report beyond what the feature file already contains.
+
+---
+
+## Step 8 — Create Branch and Pull Request
+
+### 8a — Determine Branch Name
 
 Derive the branch name from the feature file path, stripping the `features/` prefix and `.feature` suffix:
 - `features/empmgmt.feature` → `test-gen/empmgmt`
@@ -386,7 +465,7 @@ Derive the branch name from the feature file path, stripping the `features/` pre
 
 Each feature file gets its own branch. Never reuse or combine branches across files.
 
-### 7b — Create Branch and PR via `create_pull_request` safe-output
+### 8b — Create Branch and PR via `create_pull_request` safe-output
 
 > [!WARNING]
 > Do **NOT** run any git commands (`git add`, `git commit`, `git branch`, `git push`) before or
@@ -403,20 +482,27 @@ Call `create_pull_request` with:
 {
   "type": "create_pull_request",
   "branch": "test-gen/<feature-basename>",
-  "commit_message": "test(gen): generate step definitions for <feature-basename>\n\nAuto-generated by the test-generator agentic workflow.\nSource: <feature-file-path>",
-  "title": "step definitions for <feature-basename>",
-  "body": "## Auto-generated Step Definitions\n\nSource feature file: `<feature-file-path>`\n\n### Files created / modified\n<list each steps/pages/*.page.steps.ts file touched>\n\n### Verification\n- [ ] `npx cucumber-js --dry-run` reports zero undefined steps\n- [ ] `npx tsc --noEmit` passes with no errors\n- [ ] Every `Then` step has at least one `expect(...)` assertion\n- [ ] Every locator const has a `.describe()` call\n- [ ] All locator values were observed in the live browser — none assumed\n\n### Review checklist\n- [ ] Locators are stable and not based on generated IDs or hash-based classes\n- [ ] Step text matches the feature file exactly (no paraphrasing)\n- [ ] No Page Object Models introduced\n- [ ] No data hardcoded inside step definitions\n\n🤖 Generated by the [test-generator](/.github/workflows/test-generator.md) agentic workflow.",
+  "commit_message": "test(gen): generate verified step definitions for <feature-basename>\n\nAuto-generated by the test-generator agentic workflow.\nSource: <feature-file-path>\nVerification: <PASSED|FAILED> (<passed>/<total> scenarios)",
+  "title": "<✅ verified|❌ failing> step definitions for <feature-basename>",
+  "body": "## Auto-generated Step Definitions\n\nSource feature file: `<feature-file-path>`\n\n### Verification run\n**<✅ PASSED|❌ FAILED>** — <passed> of <total> scenarios passed, <n> attempt(s).\n\n<paste the Scenarios table(s) from the markdown report>\n\n- Report in this PR: `test-reports/<feature-basename>.md`\n- Full HTML report: [workflow run](<run URL>) → artifact `psd-cucumber-report`\n\n### Files created / modified\n<list each steps/pages/*.page.steps.ts file touched>\n\n### Verification\n- [ ] `npx cucumber-js --dry-run` reports zero undefined steps\n- [ ] `npx tsc --noEmit` passes with no errors\n- [ ] Every `Then` step has at least one `expect(...)` assertion\n- [ ] Every locator const has a `.describe()` call\n- [ ] All locator values were observed in the live browser — none assumed\n- [<x if passed>] `HEADLESS=true npx cucumber-js --profile files <feature-file-path>` passes\n\n### Review checklist\n- [ ] Locators are stable and not based on generated IDs or hash-based classes\n- [ ] Step text matches the feature file exactly (no paraphrasing)\n- [ ] No Page Object Models introduced\n- [ ] No data hardcoded inside step definitions\n\n🤖 Generated by the [test-generator](/.github/workflows/test-generator.md) agentic workflow.",
   "files": [
     {
       "path": "steps/pages/<pagename>.page.steps.ts",
       "content": "<full file content>"
+    },
+    {
+      "path": "test-reports/<feature-basename>.md",
+      "content": "<full markdown verification report>"
     }
   ]
 }
 ```
 
-Include one entry in `files` for every step file created or modified. The `title` will have
-`[test-gen] ` prepended automatically by the safe-output configuration.
+Include one entry in `files` for every step file created or modified, **and** the markdown verification report
+from Step 7d. The `title` will have `[test-gen] ` prepended automatically by the safe-output configuration.
+
+**If the feature still fails after 3 runs**, still open the PR so the work is not lost, but use the `❌ failing`
+title, put the failures first in the body, and leave the run check unticked. Never describe failing steps as verified.
 
 ---
 
@@ -435,6 +521,8 @@ Include one entry in `files` for every step file created or modified. The `title
 - **Run `playwright-cli` commands sequentially.** Never run `open`, `snapshot`, or `eval` concurrently — wait for each to complete before the next.
 - **`Then` must always assert.** Every `Then` step must contain at least one `expect(...)`.
 - **Do not open a PR if TypeScript compilation fails.** Fix errors first.
+- **Always execute the feature file** before opening the PR, and include the markdown report in the PR.
+- **When fixing failures, change only the steps you generated in this run** — at most 3 runs in total.
 - **Close the browser after each page** with `playwright-cli close` before opening a new session.
 
 ---
@@ -447,6 +535,8 @@ The task is complete when:
 3. Every `Then` step has at least one `expect(...)`.
 4. Every locator const has `.describe()` with a plain English description.
 5. No locators are inlined inside step bodies.
-6. All step files are submitted via `create_pull_request` with inline content targeting a `test-gen/<feature-basename>` branch.
-7. A pull request is open targeting `main`, with the review checklist in its description.
-8. Every locator value was observed in the live browser via `playwright-cli` — none were assumed or inferred.
+6. `HEADLESS=true npx cucumber-js --profile files <feature-file>` was executed, and passes (or the PR is clearly marked `❌ failing`).
+7. `test-reports/<feature-basename>.md` reflects the final run and is included in the PR.
+8. All step files are submitted via `create_pull_request` with inline content targeting a `test-gen/<feature-basename>` branch.
+9. A pull request is open targeting `main`, with the review checklist in its description.
+10. Every locator value was observed in the live browser via `playwright-cli` — none were assumed or inferred.
